@@ -97,6 +97,9 @@ input[type=text]:focus{border-color:var(--jade);outline:none}
 .listen{display:flex;gap:8px;flex-wrap:wrap}
 .listen .btn{font-size:16px;padding:10px 14px}
 .listen .btn.play{background:var(--pond);color:#fff;font-size:18px}
+.listen .btn.play.pulse{animation:pulse 1s ease-in-out infinite;box-shadow:0 0 0 4px rgba(79,166,204,.35)}
+@keyframes pulse{50%{transform:scale(1.06)}}
+.checklink{font-size:14px;color:var(--jade);text-align:center}
 .srcnote{font-size:12px;color:var(--ink-soft)}
 .choices{display:grid;gap:10px}
 .choices.c4{grid-template-columns:repeat(4,1fr)}

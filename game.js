@@ -85,17 +85,38 @@ const Snd = (() => {
     blip:    fx(t => tone(hz(88), t, .06, 'sine', .08))
   };
   // 중국어 음성: ① 녹음 파일 → ② 온라인 음성 → ③ 기기 내장 음성
+  // 휴대폰 브라우저는 화면을 누르기 전에는 소리를 막아요. 그래서 첫 터치 때 재생기 하나를 '깨워 두고' 계속 다시 씁니다.
+  const SILENT = 'data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA';
+  const voiceEl = new Audio(); voiceEl.preload = 'auto';
+  try { voiceEl.preservesPitch = true; voiceEl.webkitPreservesPitch = true; } catch(e){}
+  let unlocked = false; const diag = {};
+  function unlock(){
+    ensure();
+    if (ctx){ try { const b = ctx.createBuffer(1, 1, 22050), src = ctx.createBufferSource(); src.buffer = b; src.connect(ctx.destination); src.start(0); } catch(e){} }
+    if (unlocked) return; unlocked = true;
+    try {
+      voiceEl.muted = true; voiceEl.src = SILENT;
+      const p = voiceEl.play();
+      if (p && p.then) p.then(() => { voiceEl.pause(); voiceEl.muted = false; diag.unlock = 'ok'; }).catch(err => { voiceEl.muted = false; unlocked = false; diag.unlock = err && err.name; });
+    } catch(e){ unlocked = false; }
+    try { if (window.speechSynthesis){ const u = new SpeechSynthesisUtterance(' '); u.volume = 0; window.speechSynthesis.speak(u); } } catch(e){}
+  }
+  ['touchend', 'click', 'keydown'].forEach(ev => document.addEventListener(ev, unlock, { capture:true, passive:true }));
+  const errKind = err => !err ? 'load' : err.name === 'NotAllowedError' ? 'blocked' : err.name === 'AbortError' ? 'abort' : 'load';
   function playUrl(url, rate){
     return new Promise((res, rej) => {
-      const a = new Audio(); let started = false;
-      const to = setTimeout(() => { if (!started){ a.src = ''; rej(new Error('timeout')); } }, 5000);
-      a.volume = prefs.mute ? 0 : prefs.voice/100;
-      try { a.preservesPitch = true; a.webkitPreservesPitch = true; } catch(e){}
-      a.onerror = () => { clearTimeout(to); rej(new Error('load')); };
-      a.onended = () => res();
-      a.onplaying = () => { started = true; clearTimeout(to); };
-      a.src = url; a.playbackRate = rate;
-      const p = a.play(); if (p && p.catch) p.catch(err => { clearTimeout(to); rej(err); });
+      const a = voiceEl; let started = false, done = false;
+      const fin = (fn, v) => { if (done) return; done = true; clearTimeout(to); a.onerror = a.onended = a.onplaying = null; fn(v); };
+      const fail = kind => { const e = new Error(kind); e.kind = kind; return e; };
+      const to = setTimeout(() => { if (!started){ try { a.pause(); } catch(e){} fin(rej, fail('timeout')); } }, 6000);
+      try { a.pause(); } catch(e){}
+      a.muted = false; a.volume = prefs.mute ? 0 : prefs.voice/100;
+      a.onerror = () => fin(rej, fail('load'));
+      a.onended = () => fin(res);
+      a.onplaying = () => { started = true; clearTimeout(to); a.playbackRate = rate; };
+      a.src = url; a.defaultPlaybackRate = rate; a.playbackRate = rate;
+      const p = a.play();
+      if (p && p.catch) p.catch(err => fin(rej, fail(errKind(err))));
     });
   }
   function synth(text, rate){
@@ -115,28 +136,32 @@ const Snd = (() => {
     const s = D.audio.sounds[id]; if (!s) return;
     ensure(); setDuck(.12);
     const rate = slow ? (D.audio.slowRate || .7) : 1;
+    const blockedErr = () => { lastSource = 'blocked'; const e = new Error('blocked'); e.kind = 'blocked'; return e; };
     try {
       if (D.audio.useLocalFiles && !bad[id]){
-        try { await playUrl(s.file, rate); lastSource = 'file'; return; } catch(e){ bad[id] = true; }
+        try { await playUrl(s.file, rate); lastSource = 'file'; diag.file = 'ok'; return; }
+        catch(e){ diag.file = e.kind; if (e.kind === 'blocked') throw blockedErr(); if (e.kind === 'load') bad[id] = true; }
       }
       if (D.audio.useOnlineVoice && D.audio.onlineVoiceUrl && !bad.online){
-        try { await playUrl(D.audio.onlineVoiceUrl + encodeURIComponent(s.text), rate); lastSource = 'online'; return; } catch(e){ bad.online = true; }
+        try { await playUrl(D.audio.onlineVoiceUrl + encodeURIComponent(s.text), rate); lastSource = 'online'; diag.online = 'ok'; return; }
+        catch(e){ diag.online = e.kind; if (e.kind === 'blocked') throw blockedErr(); if (e.kind === 'load') bad.online = true; }
       }
-      await synth(s.text, rate); lastSource = 'device';
-    } catch(e){ lastSource = 'fail'; throw e; }
+      await synth(s.text, rate); lastSource = 'device'; diag.device = 'ok';
+    } catch(e){ if (e.kind !== 'blocked'){ lastSource = 'fail'; diag.device = diag.device || (e && (e.message || e.error)) || 'fail'; } throw e; }
     finally { setTimeout(() => setDuck(1), 250); }
   }
   const sayQ = (id, slow) => (busy = busy.catch(() => {}).then(() => say(id, slow)));
   async function saySeq(ids, slow){ for (const id of ids){ await sayQ(id, slow); await new Promise(r => setTimeout(r, 380)); } }
   const retry = () => Object.keys(bad).forEach(k => delete bad[k]);
   if (window.speechSynthesis) window.speechSynthesis.getVoices();
-  return { ensure, apply, startBgm, sfx, say:sayQ, saySeq, retry, source:() => lastSource };
+  return { ensure, unlock, apply, startBgm, sfx, say:sayQ, saySeq, retry, source:() => lastSource, diag:() => ({ ...diag }) };
 })();
 const SOURCE_TEXT = {
   file:   ['녹음 파일로 재생 중', true],
   online: ['임시 음성(온라인 자동 음성, 성조 검수 전)', false],
   device: ['임시 음성(기기 내장 음성, 성조 검수 전)', false],
-  fail:   ['소리를 재생하지 못했어요. 소리 설정과 무음 모드를 확인해 주세요.', false]
+  blocked:['휴대폰이 자동 재생을 막았어요. ▶ 듣기를 눌러 주세요.', false],
+  fail:   ['소리를 재생하지 못했어요. 무음 모드와 음량을 확인하고 ↻ 다시를 눌러 주세요.', false]
 };
 function sourceBadge(){
   const v = SOURCE_TEXT[Snd.source()]; if (!v) return '';
@@ -501,7 +526,7 @@ function playMain(slow){
   return p.then(updateSrc).catch(showPlayError);
 }
 function updateSrc(){ const el = $('#srcnote'); if (el) el.innerHTML = sourceBadge(); }
-function showPlayError(){ const el = $('#srcnote'); if (el) el.innerHTML = sourceBadge() + ' <b>↻ 다시 버튼을 눌러 보세요.</b>'; }
+function showPlayError(){ const el = $('#srcnote'); if (el) el.innerHTML = sourceBadge(); const qp = $('#qplay'); if (qp) qp.classList.add('pulse'); }
 function renderQuiz(){
   const { m } = Q, box = $('#qbox');
   const n = MISSIONS.indexOf(m);

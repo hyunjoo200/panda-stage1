@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>소리 점검</title>
+<style>
+:root{--forest:#16392c;--jade:#25845f;--mist:#e9f2e4;--paper:#fbfdf8;--ink:#1b2620;--soft:#4f6157;--gold:#e3ad1f;--ok:#1f7a4d;--bad:#c9564b;--warn:#8a6200;--line:#cfdcc9;color-scheme:light}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--mist);color:var(--ink);font-family:'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;word-break:keep-all;line-height:1.5;
+  padding-block:20px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1{margin:0;font-size:26px;color:var(--forest)}
+.lead{margin:0;color:var(--soft)}
+.env{background:var(--forest);color:#eaf4e4;border-radius:16px;padding:14px 16px;font-size:15px}
+.env b{color:var(--gold)}
+.step{background:var(--paper);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 0 0 1px rgba(22,57,44,.08)}
+.step h2{margin:0;font-size:18px;display:flex;gap:8px;align-items:center}
+.step h2 span{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--jade);color:#fff;font-size:15px;flex:none}
+.step p{margin:0;font-size:14px;color:var(--soft)}
+button{font:inherit;font-weight:700;font-size:17px;border:0;border-radius:12px;padding:12px 16px;background:var(--jade);color:#fff;min-height:48px;cursor:pointer}
+.res{font-size:15px;font-weight:700;padding:8px 12px;border-radius:10px;background:#eef3ec}
+.res.ok{background:#dff2e6;color:var(--ok)}.res.bad{background:#fbe3df;color:var(--bad)}.res.warn{background:#fff3cf;color:var(--warn)}
+.res:empty{display:none}
+ul{margin:0;padding-left:20px;font-size:15px}
+li{margin:4px 0}
+.ask{display:flex;gap:8px;flex-wrap:wrap}
+.ask button{background:#e3ede0;color:var(--forest);font-size:15px;min-height:40px;padding:8px 14px}
+a{color:var(--jade);font-weight:700}
+</style>
+</head>
+<body>
+<main>
+  <h1>🔊 소리 점검</h1>
+  <p class="lead">휴대폰에서 이 페이지를 열고 1번부터 차례로 눌러 보세요. 어느 단계에서 소리가 안 나는지 알 수 있어요.</p>
+  <div class="env" id="env">기기 확인 중…</div>
+
+  <section class="step">
+    <h2><span>1</span>기본 효과음</h2>
+    <p>'삐리링' 소리가 나면 기기 음량과 무음 모드는 괜찮은 거예요.</p>
+    <button type="button" id="b1">삐리링 들어 보기</button>
+    <div class="ask" id="a1" hidden><button type="button" data-a="1" data-v="y">들려요</button><button type="button" data-a="1" data-v="n">안 들려요</button></div>
+    <div class="res" id="r1"></div>
+  </section>
+
+  <section class="step">
+    <h2><span>2</span>녹음 파일 (audio/ma1.mp3)</h2>
+    <p>선생님이 올린 녹음 파일이 있는지 확인해요. 아직 안 올렸다면 '없음'이 정상이에요.</p>
+    <button type="button" id="b2">녹음 파일 확인</button>
+    <div class="res" id="r2"></div>
+  </section>
+
+  <section class="step">
+    <h2><span>3</span>온라인 자동 음성 (구글)</h2>
+    <p>'mā(妈)' 소리가 나는지 들어 보세요. 인터넷이 연결되어 있어야 해요.</p>
+    <button type="button" id="b3">mā 들어 보기</button>
+    <div class="ask" id="a3" hidden><button type="button" data-a="3" data-v="y">들려요</button><button type="button" data-a="3" data-v="n">안 들려요</button></div>
+    <div class="res" id="r3"></div>
+  </section>
+
+  <section class="step">
+    <h2><span>4</span>기기에 들어 있는 중국어 음성</h2>
+    <p>3번이 안 될 때 쓰는 마지막 방법이에요. 기기에 중국어 음성이 깔려 있어야 해요.</p>
+    <button type="button" id="b4">기기 음성으로 mā 듣기</button>
+    <div class="ask" id="a4" hidden><button type="button" data-a="4" data-v="y">들려요</button><button type="button" data-a="4" data-v="n">안 들려요</button></div>
+    <div class="res" id="r4"></div>
+  </section>
+
+  <section class="step">
+    <h2><span>✓</span>결과와 해결 방법</h2>
+    <div id="advice"><p>위 단계를 눌러 보면 여기에 해결 방법이 나와요.</p></div>
+  </section>
+
+  <p><a href="index.html">← 게임으로 돌아가기</a></p>
+</main>
+<script src="game-data.js"></script>
+<script>
+(() => {
+const D = window.GAME_DATA || { audio:{ onlineVoiceUrl:'https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-CN&client=tw-ob&q=', sounds:{ ma1:{ file:'audio/ma1.mp3', text:'妈' } } } };
+const $ = s => document.querySelector(s);
+const ua = navigator.userAgent;
+const isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isAndroid = /Android/.test(ua);
+const inApp = /KAKAOTALK|NAVER|Instagram|FBAN|FBAV|Line\/|DaumApps|everytimeApp|; wv\)/i.test(ua);
+const appName = /KAKAOTALK/i.test(ua) ? '카카오톡' : /NAVER/i.test(ua) ? '네이버' : /Instagram/i.test(ua) ? '인스타그램' : /FBAN|FBAV/.test(ua) ? '페이스북' : /Line\//.test(ua) ? '라인' : '앱';
+const R = {};
+$('#env').innerHTML = `기기: <b>${isIOS ? '아이폰·아이패드' : isAndroid ? '안드로이드' : 'PC 또는 기타'}</b> · 브라우저: <b>${inApp ? appName + ' 안의 브라우저' : /CriOS|Chrome/.test(ua) ? '크롬' : /Safari/.test(ua) ? '사파리' : '기타'}</b>`
+  + (inApp ? `<br>⚠ ${appName} 안에서 열린 화면은 소리가 막히는 경우가 많아요. 오른쪽 위 메뉴에서 <b>'다른 브라우저로 열기'</b>를 눌러 크롬이나 사파리로 열어 주세요.` : '');
+
+function show(id, cls, html){ const el = $('#r' + id); el.className = 'res ' + cls; el.innerHTML = html; }
+function ask(id){ $('#a' + id).hidden = false; }
+document.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
+  const id = b.dataset.a, ok = b.dataset.v === 'y'; R[id] = ok ? 'ok' : 'no';
+  $('#a' + id).hidden = true;
+  show(id, ok ? 'ok' : 'bad', ok ? '✔ 들려요' : '✘ 안 들려요');
+  advise();
+});
+
+let ctx;
+$('#b1').onclick = () => {
+  try {
+    ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+    const t = ctx.currentTime;
+    [659, 784, 988].forEach((f, i) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = f; g.gain.setValueAtTime(.25, t + i*.12); g.gain.exponentialRampToValueAtTime(.001, t + i*.12 + .3); o.connect(g); g.connect(ctx.destination); o.start(t + i*.12); o.stop(t + i*.12 + .35); });
+    show(1, 'warn', '소리가 났나요?'); ask(1);
+  } catch(e){ R[1] = 'no'; show(1, 'bad', '이 브라우저는 효과음을 낼 수 없어요.'); advise(); }
+};
+
+const player = new Audio();
+function tryPlay(url){
+  return new Promise((res, rej) => {
+    let done = false; const fin = (f, v) => { if (!done){ done = true; clearTimeout(to); f(v); } };
+    const to = setTimeout(() => fin(rej, 'timeout'), 7000);
+    player.onerror = () => fin(rej, 'load');
+    player.onplaying = () => fin(res, 'playing');
+    player.src = url;
+    const p = player.play(); if (p && p.catch) p.catch(err => fin(rej, err && err.name === 'NotAllowedError' ? 'blocked' : 'load'));
+  });
+}
+$('#b2').onclick = async () => {
+  show(2, 'warn', '확인 중…');
+  try { await tryPlay(D.audio.sounds.ma1.file); R[2] = 'ok'; show(2, 'ok', '✔ 녹음 파일이 있어요. 지금 나오는 소리가 녹음 파일이에요.'); }
+  catch(e){ R[2] = 'none'; show(2, e === 'blocked' ? 'bad' : 'warn', e === 'blocked' ? '✘ 브라우저가 재생을 막았어요.' : '녹음 파일 없음 (아직 안 올렸다면 정상이에요)'); }
+  advise();
+};
+$('#b3').onclick = async () => {
+  show(3, 'warn', '불러오는 중…');
+  try { await tryPlay(D.audio.onlineVoiceUrl + encodeURIComponent(D.audio.sounds.ma1.text)); show(3, 'warn', '소리가 났나요?'); ask(3); }
+  catch(e){ R[3] = e; show(3, 'bad', e === 'blocked' ? '✘ 브라우저가 재생을 막았어요.' : e === 'timeout' ? '✘ 응답이 너무 늦어요. 인터넷 연결을 확인해 주세요.' : '✘ 온라인 음성에 연결하지 못했어요.'); advise(); }
+};
+function voices(){ return window.speechSynthesis ? speechSynthesis.getVoices() : []; }
+if (window.speechSynthesis){ voices(); speechSynthesis.onvoiceschanged = () => {}; }
+$('#b4').onclick = () => {
+  if (!window.speechSynthesis){ R[4] = 'none'; show(4, 'bad', '✘ 이 브라우저는 기기 음성을 지원하지 않아요.'); advise(); return; }
+  const zh = voices().filter(v => /^zh|cmn/i.test(v.lang));
+  const u = new SpeechSynthesisUtterance('妈'); u.lang = 'zh-CN'; u.rate = .85;
+  const v = zh.find(v => /CN/i.test(v.lang)) || zh[0]; if (v) u.voice = v;
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+  if (voices().length && !zh.length){ R[4] = 'none'; show(4, 'bad', '✘ 기기에 중국어 음성이 없어요.'); advise(); return; }
+  show(4, 'warn', (v ? `사용한 음성: ${v.name}<br>` : '') + '소리가 났나요?'); ask(4);
+};
+
+function advise(){
+  const tips = [];
+  if (inApp) tips.push(`<b>${appName} 안에서 열려 있어요.</b> 메뉴(⋮ 또는 ···)에서 '다른 브라우저로 열기'를 눌러 크롬이나 사파리로 다시 열어 주세요.`);
+  if (R[1] === 'no'){
+    tips.push(isIOS ? '<b>아이폰 왼쪽 옆의 무음 스위치</b>가 켜져 있으면(주황색이 보이면) 게임 소리가 안 나요. 스위치를 올려 무음을 꺼 주세요. (아이폰 15 Pro 이상은 동작 버튼 또는 제어 센터의 무음 모드)'
+                : '휴대폰 옆 음량 버튼으로 <b>미디어 음량</b>을 올려 주세요. 방해 금지 모드도 꺼 주세요.');
+    tips.push('블루투스 이어폰이 연결되어 있지 않은지 확인해 주세요.');
+  }
+  if (R[3] === 'ok' || R[2] === 'ok') tips.push('✔ 이 기기에서는 게임의 중국어 소리가 들려야 해요. 게임을 <b>새로고침</b>한 뒤, 문제 창의 <b>▶ 듣기</b>를 직접 눌러 보세요.');
+  else if (R[3] === 'no' || R[3] === 'load' || R[3] === 'timeout' || R[3] === 'blocked'){
+    tips.push('온라인 음성이 이 기기·인터넷에서 막혀 있어요. 학교 와이파이가 막는 경우도 있으니 휴대폰 데이터로도 한 번 시험해 보세요.');
+    if (R[4] === 'ok') tips.push('대신 기기 음성(4번)은 되니 게임은 그 소리로 진행돼요. 다만 성조가 검수되지 않은 임시 음성이에요.');
+    else tips.push('가장 확실한 해결책은 <b>녹음 파일(ma1~ma4.mp3)</b>을 audio 폴더에 올리는 거예요. 그러면 인터넷 음성이나 기기 음성 없이도 모든 기기에서 같은 소리가 나요.');
+  }
+  if (R[4] === 'none' && isAndroid) tips.push('안드로이드: 설정 → 일반(또는 접근성) → 텍스트 음성 변환 → Google 음성 엔진 → 언어에서 <b>중국어(중국)</b> 음성을 내려받을 수 있어요.');
+  if (R[4] === 'none' && isIOS) tips.push('아이폰: 설정 → 손쉬운 사용 → 읽기 및 말하기 → 음성 → <b>중국어(중국 본토)</b> 음성을 내려받을 수 있어요.');
+  if (!tips.length) tips.push('계속해서 아래 단계를 눌러 보세요.');
+  $('#advice').innerHTML = '<ul>' + tips.map(t => `<li>${t}</li>`).join('') + '</ul>';
+}
+advise();
+})();
+</script>
+</body>
+</html>
