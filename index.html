@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16392c">
+<title>대나무 언덕의 비밀</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Gowun+Dodum&family=Noto+Sans:wght@500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- 시작 화면 -->
+  <section id="startScreen" class="screen">
+    <div class="card">
+      <div class="eyebrow" id="stageLabel">중국어 탐험대 · STAGE 01</div>
+      <h1 id="gameTitle">대나무 언덕의 비밀<small>사라진 네 가지 소리</small></h1>
+      <div id="resumeBox" class="row" hidden>
+        <button class="btn primary" id="resumeBtn" type="button">이어서 하기</button>
+        <button class="btn ghost" id="newBtn" type="button">처음부터</button>
+      </div>
+      <div id="newBox" class="stack">
+        <label class="field" for="nameInput">내 탐험 이름
+          <input type="text" id="nameInput" maxlength="12" autocomplete="off" placeholder="예: 하늘판다">
+          <span class="help">선생님이 알려 준 이름이나 별명으로 써요. (1~12글자)</span>
+        </label>
+        <div class="row">
+          <button class="btn" id="testBtn" type="button">🔊 소리 테스트</button>
+          <span id="testResult" class="note">소리가 잘 들리는지 먼저 눌러 보세요.</span>
+        </div>
+        <button class="btn primary" id="startBtn" type="button">모험 시작!</button>
+      </div>
+      <div class="controls-pic">
+        <div class="keys"><i class="x"></i><i>↑</i><i class="x"></i><i>←</i><i class="x"></i><i>→</i></div>
+        <div>←→ 또는 A·D로 달리고, ↑·W·스페이스로 점프해요. 태블릿·휴대폰은 화면 버튼을 눌러요.</div>
+        <div class="ico">🔔</div><div>빛나는 <b>소리의 종</b>에 닿으면 중국어 문제가 나와요. 5개를 모두 울리면 문이 열려요.</div>
+        <div class="ico">🍄</div><div>통통 버섯과 부딪히면 별 점수가 10점 줄어요. 위에서 밟으면 잠깐 어지러워해요!</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 이야기 -->
+  <section id="storyScreen" class="screen" hidden>
+    <div class="card story-panel">
+      <canvas id="storyCanvas" width="440" height="300"></canvas>
+      <p class="story-text" id="storyText"></p>
+      <div class="dots" id="storyDots"></div>
+      <div class="row center">
+        <button class="btn ghost" id="skipBtn" type="button">건너뛰기</button>
+        <button class="btn primary" id="nextBtn" type="button">다음</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 게임 -->
+  <section id="play" hidden>
+    <header id="hud">
+      <div class="scorebox"><span class="lab">학습</span><b id="learnScore">0</b></div>
+      <div class="scorebox"><span class="lab">별</span><b id="starScore">0</b></div>
+      <div class="bells" id="bells" aria-label="울린 종"></div>
+      <div class="items" id="items"></div>
+      <div class="spacer"></div>
+      <div class="who" id="who"></div>
+      <button class="hud-btn" id="soundBtn" type="button" aria-label="소리 설정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></button>
+      <button class="hud-btn" id="helpBtn" type="button" aria-label="도움말"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></button>
+    </header>
+    <div id="stage">
+      <canvas id="game" aria-label="판다 횡스크롤 게임 화면"></canvas>
+      <div id="toast" role="status" aria-live="polite" hidden></div>
+      <div id="pad" hidden>
+        <div class="pad-move">
+          <button type="button" data-key="left" aria-label="왼쪽으로"><svg viewBox="0 0 24 24"><path d="M6 12l10-8v16z" fill="currentColor"/></svg></button>
+          <button type="button" data-key="right" aria-label="오른쪽으로"><svg viewBox="0 0 24 24"><path d="M18 12L8 20V4z" fill="currentColor"/></svg></button>
+        </div>
+        <button type="button" data-key="jump" class="jump" aria-label="점프">점프</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 퀴즈 -->
+  <section id="quiz" hidden><div class="qbox" id="qbox" role="dialog" aria-modal="true"></div></section>
+
+  <!-- 소리 설정 -->
+  <section id="soundPanel" class="panel" hidden>
+    <div class="card">
+      <h2>소리 설정</h2>
+      <div class="slider"><label for="volBgm">배경음악</label><input id="volBgm" type="range" min="0" max="100" value="45"><span id="volBgmV">45</span></div>
+      <div class="slider"><label for="volSfx">효과음</label><input id="volSfx" type="range" min="0" max="100" value="70"><span id="volSfxV">70</span></div>
+      <div class="slider"><label for="volVoice">중국어 소리</label><input id="volVoice" type="range" min="0" max="100" value="100"><span id="volVoiceV">100</span></div>
+      <label class="row" for="muteAll"><input type="checkbox" id="muteAll"> 모든 소리 끄기</label>
+      <p class="note" id="voiceSourceNote"></p>
+      <label class="field" for="renameInput">탐험 이름 고치기
+        <input type="text" id="renameInput" maxlength="12" autocomplete="off">
+      </label>
+      <div class="row"><button class="btn" id="renameBtn" type="button">이름 저장</button><span class="note" id="renameMsg"></span></div>
+      <button class="btn primary" id="soundClose" type="button">닫기</button>
+    </div>
+  </section>
+
+  <!-- 도움말 -->
+  <section id="helpPanel" class="panel" hidden>
+    <div class="card">
+      <h2>탐험 방법</h2>
+      <div class="controls-pic">
+        <div class="keys"><i class="x"></i><i>↑</i><i class="x"></i><i>←</i><i class="x"></i><i>→</i></div>
+        <div>←→·A·D로 달리고 ↑·W·스페이스로 점프해요.</div>
+        <div class="ico">🔔</div><div>종 5개를 모두 금색으로 만들면 언덕 끝의 문이 열려요.</div>
+        <div class="ico">📍</div><div>위쪽 길 막대에서 깜박이는 종이 아직 안 푼 곳이에요.</div>
+        <div class="ico">🎁</div><div>구름 계단 위 대나무 상자에는 보너스 문제가 있어요. (안 풀어도 문은 열려요)</div>
+      </div>
+      <div class="contour-ref" id="helpContours"></div>
+      <button class="btn primary" id="helpClose" type="button">계속 달리기</button>
+    </div>
+  </section>
+
+  <!-- 종료 -->
+  <section id="endScreen" class="screen" hidden>
+    <div class="card">
+      <div class="eyebrow">STAGE CLEAR!</div>
+      <h1>대나무 언덕 탐험 성공!</h1>
+      <div class="medal"><span>성조<br>탐험가</span></div>
+      <div class="nihao"><span class="zh">你好!</span>
+        <div class="grow"><div class="py big">nǐ hǎo</div><div class="note">두 글자 모두 3성이라 실제로는 <span class="py">ní hǎo</span>처럼 앞 글자가 올라가요.</div></div>
+        <button class="btn" id="nihaoBtn" type="button" aria-label="你好 듣기">▶</button></div>
+      <div class="scores3">
+        <div><small>학습 점수</small><b id="endLearn">0</b></div>
+        <div><small>별 점수</small><b id="endStar">0</b></div>
+        <div class="total"><small>총점</small><b id="endTotal">0</b></div>
+      </div>
+      <div class="stat"><span id="endName"></span><span id="endFirst"></span></div>
+      <div class="stat"><span>보너스 황금 대나무</span><span id="endBonus">-</span></div>
+      <div class="locked"><b>🔒 <span id="nextName">STAGE 02 · 이름표 마을</span></b><span id="nextLine"></span></div>
+      <div class="save" id="saveStatus"></div>
+      <div class="row center">
+        <button class="btn ghost" id="replayBtn" type="button">숲으로 돌아가 달리기</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="game-data.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
