@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#16392c">
-<title>대나무 언덕의 비밀</title>
+<title>대나무 언덕의 비밀 2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Gowun+Dodum&family=Noto+Sans:wght@500;700&display=swap">
 <link rel="stylesheet" href="style.css">
@@ -15,7 +15,7 @@
   <!-- 시작 화면 -->
   <section id="startScreen" class="screen">
     <div class="card">
-      <div class="eyebrow" id="stageLabel">중국어 탐험대 · STAGE 01</div>
+      <div class="eyebrow" id="stageLabel">중국어 탐험대 · STAGE 01 · 2차시</div>
       <h1 id="gameTitle">대나무 언덕의 비밀<small>사라진 네 가지 소리</small></h1>
       <div class="zonelist" id="zoneList"></div>
       <div id="resumeBox" class="row" hidden>
@@ -37,7 +37,7 @@
       <div class="controls-pic">
         <div class="keys"><i class="x"></i><i>↑</i><i class="x"></i><i>←</i><i class="x"></i><i>→</i></div>
         <div>←→ 또는 A·D로 달리고, ↑·W·스페이스로 점프해요. 태블릿·휴대폰은 화면 버튼을 눌러요.</div>
-        <div class="ico">🔔</div><div>빛나는 <b>소리의 종</b>에 닿으면 중국어 문제가 나와요. 한 구역의 종을 모두 울리면 다음 구역 문이 열려요.</div>
+        <div class="ico">🔔</div><div>빛나는 <b>소리의 종</b>에 닿으면 문제가 나와요. 종을 모두 울린 뒤 언덕을 올라 <b>대나무 괴물</b>의 문제를 풀면 꼭대기 문이 열려요.</div>
         <div class="ico">🍄</div><div>통통 버섯과 부딪히면 별 점수가 10점 줄어요. 위에서 밟으면 별 점수 +20!</div>
       </div>
     </div>
@@ -108,9 +108,9 @@
       <div class="controls-pic">
         <div class="keys"><i class="x"></i><i>↑</i><i class="x"></i><i>←</i><i class="x"></i><i>→</i></div>
         <div>←→·A·D로 달리고 ↑·W·스페이스로 점프해요.</div>
-        <div class="ico">🔔</div><div>구역마다 종을 모두 금색으로 만들면 그 구역의 문이 열려요. 마지막 문에서는 선생님께 인사해요.</div>
+        <div class="ico">🔔</div><div>종을 모두 금색으로 만들고, 언덕 중간의 대나무 괴물 문제를 풀면 꼭대기 문이 열려요.</div>
         <div class="ico">📍</div><div>위쪽 길 막대에서 깜박이는 종이 아직 안 푼 곳이에요.</div>
-        <div class="ico">🎁</div><div>소리 마을의 높은 발판 위 대나무 상자에는 보너스 문제가 있어요. (안 풀어도 문은 열려요)</div>
+        <div class="ico">🍄</div><div>통통 버섯을 위에서 밟으면 별 점수 +20! 옆에서 부딪히면 −10이에요.</div>
       </div>
       <div class="contour-ref" id="helpContours"></div>
       <button class="btn primary" id="helpClose" type="button">계속 달리기</button>
@@ -121,11 +121,11 @@
   <section id="endScreen" class="screen" hidden>
     <div class="card">
       <div class="eyebrow">STAGE CLEAR!</div>
-      <h1>대나무 언덕 탐험 성공!</h1>
-      <div class="medal"><span>성조<br>탐험가</span></div>
-      <div class="nihao"><span class="zh">你好!</span>
-        <div class="grow"><div class="py big">nǐ hǎo</div><div class="note">표기 <span class="py">nǐ hǎo</span> (3+3) · 이어 읽기 <span class="py">ní hǎo</span> (2+3)</div></div>
-        <button class="btn" id="nihaoBtn" type="button" aria-label="你好 듣기">▶</button></div>
+      <h1>오늘의 탐험 성공!</h1>
+      <div class="medal"><span>인사말<br>탐험가</span></div>
+      <div class="nihao"><span class="zh">再见!</span>
+        <div class="grow"><div class="py big">zàijiàn</div><div class="note">오늘 수업 끝! 다음 시간에 또 만나요.</div></div>
+        <button class="btn" id="nihaoBtn" type="button" aria-label="再见 듣기">▶</button></div>
       <div class="scores3">
         <div><small>학습 점수</small><b id="endLearn">0</b></div>
         <div><small>별 점수</small><b id="endStar">0</b></div>
@@ -133,7 +133,7 @@
       </div>
       <div class="stat"><span id="endName"></span><span id="endFirst"></span></div>
       <div class="zones3" id="endZones"></div>
-      <div class="stat"><span>보너스 황금 대나무</span><span id="endBonus">-</span></div>
+      <div class="stat"><span>밟은 통통 버섯</span><span id="endBonus">-</span></div>
       <div class="locked"><b>🔒 <span id="nextName">STAGE 02 · 이름표 마을</span></b><span id="nextLine"></span></div>
       <div class="save" id="saveStatus"></div>
       <div class="row center">

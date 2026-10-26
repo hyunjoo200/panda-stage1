@@ -1,62 +1,59 @@
-/* 중국어 탐험대 STAGE 01 · 대나무 언덕의 비밀 — 게임 프로그램 (game.js)
-   문제·점수·구역 수는 game-data.js에서 고치세요. 이 파일은 고치지 않아도 됩니다. */
+/* 중국어 탐험대 · 대나무 언덕 2차시 — 게임 프로그램 (game.js)
+   문제·점수·대사는 game-data.js에서 고치세요. 이 파일은 고치지 않아도 됩니다. */
 (() => {
 'use strict';
 const D = window.GAME_DATA;
 const $ = s => document.querySelector(s);
-const STORE_KEY = 'panda-stage1-v3', PREF_KEY = 'panda-stage1-prefs';
+const STORE_KEY = D.saveKey || 'panda-stage1-lesson2', PREF_KEY = 'panda-stage1-prefs';
 const VH = 540, GROUND = 450;
 const SOUNDS = D.audio.sounds;
 Object.keys(SOUNDS).forEach(id => { if (!SOUNDS[id].file) SOUNDS[id].file = `audio/${id}.mp3`; });
-const ZONES = D.zones.slice(0, Math.max(1, Math.min(D.zones.length, D.playZones || D.zones.length)));
-const MISSIONS = ZONES.flatMap((z, zi) => z.missions.map(m => ({ ...m, zone: zi })));
-const BONUS_ZONE = Math.min(1, ZONES.length - 1);
-const BONUS = { ...D.bonus, zone: BONUS_ZONE };
-const ALL = [...MISSIONS, BONUS];
+const ZONES = [{ name: '대나무 언덕', theme: 'forest', gate: '꼭대기 문' }];
+const MISSIONS = D.missions.map(m => ({ ...m, zone: 0 }));
+const BOSS = { id: 'boss', place: D.boss.name, zone: 0, type: 'boss' };
+const ALL = [...MISSIONS, BOSS];
 const TONE_DESC = { 1:'높고 평평하게', 2:'중간에서 높게', 3:'낮아졌다 올라오게', 4:'높은 곳에서 아래로' };
 const MA = ['ma1','ma2','ma3','ma4'];
 
-/* ================= 스테이지 만들기 ================= */
-const LV = { bells:[], gates:[], platforms:[], stars:[], friends:[], signs:[], zoneStart:[], zoneEnd:[], bonus:null, width:0 };
+/* ================= 스테이지 만들기: 평지 + 소리의 종 + 언덕(중간에 대나무 괴물) + 꼭대기 문 ================= */
+const LV = { bells:[], gates:[], platforms:[], stars:[], friends:[], signs:[], zoneStart:[0], zoneEnd:[], bonus:null, width:0, hill:null, boss:null };
+function groundAt(x){
+  const h = LV.hill; if (!h || x <= h.x0) return GROUND;
+  if (x >= h.x1) return GROUND - h.rise;
+  const t = (x - h.x0) / (h.x1 - h.x0); return GROUND - h.rise * t * t * (3 - 2*t);
+}
 (function build(){
-  let x = 0;
-  ZONES.forEach((z, zi) => {
-    LV.zoneStart.push(x);
-    const first = x + (zi === 0 ? 560 : 520);
-    LV.signs.push({ x: x + (zi === 0 ? 230 : 190), name: z.name });
-    // 첫 종 앞
-    LV.platforms.push({ x: x + (zi === 0 ? 300 : 260), y: 362, w: 150 });
-    LV.stars.push([x + (zi === 0 ? 340 : 300), 322], [x + (zi === 0 ? 400 : 360), 322]);
-    z.missions.forEach((m, i) => {
-      const bx = first + i * 640;
-      LV.bells.push({ id: m.id, x: bx, zone: zi });
-      if (i < z.missions.length - 1){
-        const isBonusGap = zi === BONUS_ZONE && i === 1 && !LV.bonus;
-        if (isBonusGap){
-          LV.platforms.push({ x: bx + 150, y: 362, w: 150 }, { x: bx + 320, y: 276, w: 160 });
-          LV.bonus = { x: bx + 400, y: 276 };
-          LV.stars.push([bx + 190, 322], [bx + 250, 322], [bx + 360, 236]);
-        } else if (i % 2 === 0){
-          LV.platforms.push({ x: bx + 170, y: 360, w: 160 }, { x: bx + 370, y: 300, w: 130 });
-          LV.stars.push([bx + 210, 320], [bx + 270, 320], [bx + 410, 260], [bx + 460, 260]);
-        } else {
-          LV.platforms.push({ x: bx + 230, y: 356, w: 180 });
-          LV.stars.push([bx + 130, 405], [bx + 280, 316], [bx + 340, 316], [bx + 520, 405]);
-        }
-        if (i % 2 === 0 || zi > 0) LV.friends.push({ from: bx + 120, to: bx + 520, zone: zi });
+  const SP = 560, first = 560;
+  LV.signs.push({ x: 230, name: '대나무 언덕' });
+  LV.platforms.push({ x: 300, y: 362, w: 150 });
+  LV.stars.push([340, 322], [400, 322]);
+  MISSIONS.forEach((m, i) => {
+    const bx = first + i * SP;
+    LV.bells.push({ id: m.id, x: bx, zone: 0 });
+    if (i < MISSIONS.length - 1){
+      if (i % 2 === 0){
+        LV.platforms.push({ x: bx + 150, y: 360, w: 150 }, { x: bx + 340, y: 300, w: 120 });
+        LV.stars.push([bx + 190, 320], [bx + 250, 320], [bx + 380, 260], [bx + 425, 260]);
+        LV.friends.push({ from: bx + 110, to: bx + 460, zone: 0 });
+      } else {
+        LV.platforms.push({ x: bx + 200, y: 356, w: 170 });
+        LV.stars.push([bx + 120, 405], [bx + 245, 316], [bx + 305, 316], [bx + 450, 405]);
       }
-    });
-    const last = first + (z.missions.length - 1) * 640;
-    LV.stars.push([last + 180, 405], [last + 230, 405], [last + 280, 405]);
-    const gx = last + 420;
-    LV.gates.push({ x: gx, zone: zi, name: z.gate, final: zi === ZONES.length - 1 });
-    x = gx + (zi === ZONES.length - 1 ? 520 : 260);
-    LV.zoneEnd.push(x);
+    }
   });
-  if (!LV.bonus){ const b = LV.bells[Math.min(1, LV.bells.length - 1)]; LV.platforms.push({ x: b.x + 330, y: 276, w: 160 }); LV.bonus = { x: b.x + 410, y: 276 }; }
-  LV.width = x;
+  const last = first + (MISSIONS.length - 1) * SP;
+  LV.stars.push([last + 170, 405], [last + 220, 405]);
+  const x0 = last + 330, x1 = x0 + 760, rise = 140;
+  LV.hill = { x0, x1, rise };
+  LV.signs.push({ x: x0 - 70, name: '오르막 언덕 ↗' });
+  LV.boss = { x: x0 + 430 };
+  [x0 + 120, x0 + 200, x0 + 280].forEach(sx => LV.stars.push([sx, groundAt(sx) - 50]));
+  const gx = x1 + 150;
+  LV.gates.push({ x: gx, zone: 0, name: '꼭대기 문', final: true });
+  LV.width = gx + 480;
+  LV.zoneEnd.push(LV.width);
 })();
-const zoneAt = wx => { for (let i = LV.zoneEnd.length - 1; i >= 0; i--) if (wx >= LV.zoneStart[i]) return i; return 0; };
+const zoneAt = () => 0;
 
 /* ================= 저장 (이 기기) ================= */
 const store = {
@@ -74,7 +71,8 @@ function newState(name){
 }
 let S = null;
 const persist = () => { if (S) store.save(S); };
-const zoneDone = zi => MISSIONS.filter(m => m.zone === zi).every(m => S.results[m.id].done);
+const bellsDone = () => MISSIONS.every(m => S.results[m.id].done);
+const zoneDone = () => bellsDone() && S.results.boss.done;
 
 /* ================= 소리 ================= */
 const Snd = (() => {
@@ -345,22 +343,33 @@ function drawTheme(g, name, t, alpha){
   tile(layers[name].far, .15); tile(layers[name].mid, .45);
   g.globalAlpha = 1;
 }
-function drawGroundSeg(g, x0, x1, th){
-  const a = Math.max(x0 - cam, -10), b = Math.min(x1 - cam, VW + 10); if (b <= a) return;
-  const grd = g.createLinearGradient(0, GROUND, 0, VH); grd.addColorStop(0, th.soil); grd.addColorStop(1, th.soilDark);
-  g.fillStyle = grd; g.fillRect(a, GROUND + 22, b - a, VH - GROUND);
-  g.fillStyle = th.grass; g.fillRect(a, GROUND, b - a, 26);
-  g.fillStyle = th.grassDark; g.fillRect(a, GROUND + 20, b - a, 6);
-  // 둥근 풀 가장자리
+function drawGround(g, th){
+  const step = 8, xs = [];
+  for (let x = -16; x <= VW + 16; x += step) xs.push(x);
+  const top = x => groundAt(x + cam);
+  const band = (off0, off1, fill) => { g.fillStyle = fill; g.beginPath(); g.moveTo(xs[0], top(xs[0]) + off0);
+    xs.forEach(x => g.lineTo(x, top(x) + off0)); for (let i = xs.length - 1; i >= 0; i--) g.lineTo(xs[i], off1 === 'bottom' ? VH : top(xs[i]) + off1); g.closePath(); g.fill(); };
+  const grd = g.createLinearGradient(0, GROUND - 140, 0, VH); grd.addColorStop(0, th.soil); grd.addColorStop(1, th.soilDark);
+  band(22, 'bottom', grd);
+  band(0, 26, th.grass);
+  band(20, 26, th.grassDark);
   g.fillStyle = th.grass;
-  const s0 = Math.floor((a + cam)/22)*22;
-  for (let wx = s0; wx < b + cam; wx += 22) E(g, wx - cam + 11, GROUND + 24, 12, 6);
-  // 돌길
+  const s0 = Math.floor((cam - 20)/22)*22;
+  for (let wx = s0; wx < cam + VW + 22; wx += 22) E(g, wx - cam + 11, groundAt(wx + 11) + 24, 12, 6);
   g.fillStyle = th.path;
-  const p0 = Math.floor((a + cam)/74)*74;
-  for (let wx = p0; wx < b + cam; wx += 74){ rr(g, wx - cam + 8, GROUND + 7, 54, 11, 5.5); g.fill(); }
-  g.fillStyle = 'rgba(0,0,0,.06)';
-  for (let wx = p0; wx < b + cam; wx += 74) g.fillRect(wx - cam + 30, GROUND + 52, 22, 4);
+  const p0 = Math.floor((cam - 80)/74)*74;
+  for (let wx = p0; wx < cam + VW + 74; wx += 74){
+    const cx = wx + 35, a = Math.atan2(groundAt(cx + 10) - groundAt(cx - 10), 20);
+    g.save(); g.translate(cx - cam, groundAt(cx) + 12); g.rotate(a); rr(g, -27, -5.5, 54, 11, 5.5); g.fill(); g.restore();
+  }
+  // 언덕 둔덕 장식 (작은 대나무 울타리)
+  const h = LV.hill;
+  if (h){ g.strokeStyle = '#8a6a43'; g.lineWidth = 4; g.lineCap = 'round';
+    for (let wx = h.x0 + 40; wx < h.x1 + 120; wx += 46){ const x = wx - cam; if (x < -20 || x > VW + 20) continue; const y = groundAt(wx) + 2;
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - 26); g.stroke(); }
+    g.lineWidth = 3; g.beginPath(); let first = true;
+    for (let wx = h.x0 + 40; wx < h.x1 + 120; wx += 6){ const x = wx - cam; if (x < -30 || x > VW + 30) { first = true; continue; } const y = groundAt(wx) - 18; if (first){ g.moveTo(x, y); first = false; } else g.lineTo(x, y); }
+    g.stroke(); }
 }
 
 /* ================= 판다 ================= */
@@ -461,6 +470,7 @@ function drawBell(g, b, done, t, near){
   g.fillStyle = '#fff'; g.textAlign = 'center'; g.fillText(m.place, x, y + 53);
 }
 function drawBonusBox(g, t){
+  if (!LV.bonus) return;
   const bx = LV.bonus; const x = bx.x - cam, y = bx.y; if (x < -80 || x > VW + 80) return;
   const done = S.results.bonus.done;
   if (!done){ const p = (Math.sin(t/350) + 1)/2; const gl = g.createRadialGradient(x, y - 22, 4, x, y - 22, 48 + p*6); gl.addColorStop(0, 'rgba(255,240,170,.7)'); gl.addColorStop(1, 'rgba(255,240,170,0)'); g.fillStyle = gl; g.fillRect(x - 60, y - 80, 120, 90); }
@@ -503,7 +513,7 @@ function drawSign(g, s){
 }
 function drawGate(g, gt, t){
   const gx = gt.x - cam; if (gx < -200 || gx > VW + 80) return;
-  const y = GROUND, open = S.zonesOpen.includes(gt.zone);
+  const y = groundAt(gt.x + 40), open = S.zonesOpen.includes(gt.zone);
   const W = gt.final ? 120 : 92, H = gt.final ? 220 : 188;
   if (open){ const gl = g.createRadialGradient(gx + W/2, y - H/2, 10, gx + W/2, y - H/2, W + 40); gl.addColorStop(0, `rgba(255,236,150,${.55 + Math.sin(t/250)*.15})`); gl.addColorStop(1, 'rgba(255,236,150,0)'); g.fillStyle = gl; g.fillRect(gx - 60, y - H - 60, W + 120, H + 60); }
   const pg = g.createLinearGradient(gx - 10, 0, gx + 6, 0); pg.addColorStop(0, '#c4443a'); pg.addColorStop(1, '#9a3129');
@@ -518,9 +528,8 @@ function drawGate(g, gt, t){
     g.fillStyle = dg; g.fillRect(dx, dt, dw, dh);
     g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(dx + dw/2 - 1, dt, 2, dh);
     g.fillStyle = '#e3ad1f'; E(g, dx + dw/2, dt + dh*.45, 10, 10); g.fillRect(dx + dw/2 - 3, dt + dh*.45, 6, 16);
-    const left = MISSIONS.filter(m => m.zone === gt.zone && !S.results[m.id].done).length;
     g.fillStyle = '#fff'; rr(g, dx + 6, dt + 12, dw - 12, 26, 8); g.fill();
-    g.fillStyle = '#16392c'; g.font = '14px "Gowun Dodum", sans-serif'; g.fillText(`종 ${left}개 남음`, dx + dw/2, dt + 30);
+    g.fillStyle = '#16392c'; g.font = '14px "Gowun Dodum", sans-serif'; g.fillText('잠겨 있어요', dx + dw/2, dt + 30);
   } else {
     const lg = g.createLinearGradient(0, dt, 0, dt + dh); lg.addColorStop(0, '#fff7cf'); lg.addColorStop(1, '#ffe38a');
     g.fillStyle = lg; g.fillRect(dx, dt, dw, dh);
@@ -533,6 +542,72 @@ function drawGate(g, gt, t){
     g.fillStyle = '#16392c'; g.font = '700 15px "Do Hyeon", sans-serif'; g.fillText('STAGE 02 🔒', sx + 50, y - 169);
   }
 }
+function drawBossShape(g, x, y, o){
+  const { t = 0, mood = 'grin', hearts = 3, scale: sc = 1, alpha = 1 } = o;
+  g.save(); g.translate(x, y); g.scale(sc, sc); g.globalAlpha = alpha;
+  const bob = Math.sin(t/260) * 3, laugh = mood === 'laugh' ? Math.sin(t/60) * 2 : 0;
+  g.fillStyle = 'rgba(20,40,30,.22)'; E(g, 0, 2, 52, 8);
+  // 발
+  g.fillStyle = '#3e6b2f'; rr(g, -34, -14, 26, 16, 8); g.fill(); rr(g, 8, -14, 26, 16, 8); g.fill();
+  g.translate(laugh, bob);
+  // 팔 (대나무 잎)
+  const wave = Math.sin(t/220) * .25;
+  g.fillStyle = '#5f9e45';
+  g.save(); g.translate(-40, -92); g.rotate(-.9 + wave); rr(g, -6, -46, 12, 48, 6); g.fill(); g.fillStyle = '#86c35e'; leaf(g, 0, -44, 26, -1.9); leaf(g, 0, -44, 24, -1.2); g.restore();
+  g.fillStyle = '#5f9e45';
+  g.save(); g.translate(40, -92); g.rotate(.9 - wave); rr(g, -6, -46, 12, 48, 6); g.fill(); g.fillStyle = '#86c35e'; leaf(g, 0, -44, 26, -1.2); leaf(g, 0, -44, 24, -1.9); g.restore();
+  // 몸통: 대나무 마디 3개
+  const segs = [[-60, 58], [-112, 54], [-160, 48]];
+  segs.forEach(([sy, h], i) => {
+    const w = 84 - i*6, grd = g.createLinearGradient(-w/2, 0, w/2, 0);
+    grd.addColorStop(0, '#4f8f3c'); grd.addColorStop(.35, '#8fd06a'); grd.addColorStop(1, '#3f7a30');
+    g.fillStyle = grd; rr(g, -w/2, sy, w, h, 18); g.fill();
+    g.fillStyle = '#2f5f24'; rr(g, -w/2 - 3, sy + h - 6, w + 6, 8, 4); g.fill();
+  });
+  // 잎 머리
+  g.fillStyle = '#6fb34c'; [[-24,-162,-1.9],[-8,-168,-1.6],[10,-168,-1.3],[24,-162,-1.1],[0,-170,-1.57]].forEach(([lx, ly, a]) => leaf(g, lx, ly, 40, a));
+  g.fillStyle = '#93d36a'; leaf(g, -2, -168, 30, -1.75); leaf(g, 6, -168, 28, -1.35);
+  // 얼굴 (가운데 마디)
+  const fy = -88;
+  g.fillStyle = '#fff'; E(g, -18, fy, 12, 13); E(g, 18, fy, 12, 13);
+  g.fillStyle = '#1f2a25'; const look = mood === 'happy' ? 0 : 2; E(g, -16 + look, fy + 2, 6, 7); E(g, 20 + look, fy + 2, 6, 7);
+  g.fillStyle = '#fff'; E(g, -14 + look, fy - 1, 2, 2); E(g, 22 + look, fy - 1, 2, 2);
+  g.strokeStyle = '#1f3a1a'; g.lineWidth = 5; g.lineCap = 'round';
+  g.beginPath();
+  if (mood === 'happy'){ g.moveTo(-30, fy - 22); g.quadraticCurveTo(-18, fy - 28, -6, fy - 22); g.moveTo(6, fy - 22); g.quadraticCurveTo(18, fy - 28, 30, fy - 22); }
+  else { g.moveTo(-30, fy - 26); g.lineTo(-6, fy - 17); g.moveTo(30, fy - 26); g.lineTo(6, fy - 17); }
+  g.stroke();
+  g.fillStyle = 'rgba(240,140,140,.5)'; E(g, -30, fy + 16, 7, 4); E(g, 30, fy + 16, 7, 4);
+  // 입
+  g.fillStyle = '#4a1f1a'; g.beginPath();
+  if (mood === 'happy'){ g.arc(0, fy + 16, 12, .1, Math.PI - .1); g.fill(); }
+  else { g.moveTo(-20, fy + 14); g.quadraticCurveTo(0, fy + 40 + (mood === 'laugh' ? 6 : 0), 20, fy + 14); g.closePath(); g.fill();
+    g.fillStyle = '#fff'; g.fillRect(-12, fy + 14, 7, 6); g.fillRect(5, fy + 14, 7, 6); }
+  g.restore();
+  // 하트 대신 잎사귀 3장 (남은 문제)
+  if (hearts > 0 && sc === 1){
+    for (let i = 0; i < 3; i++){ const hx = x - 26 + i*26, hy = y - 214 + bob;
+      g.fillStyle = i < hearts ? '#3fa34d' : 'rgba(255,255,255,.55)'; g.save(); g.translate(hx, hy); g.rotate(-.6); g.beginPath(); g.ellipse(0, 0, 11, 6, 0, 0, Math.PI*2); g.fill(); g.restore(); }
+  }
+}
+function drawBoss(g, t){
+  const bx = LV.boss.x - cam; if (bx < -160 || bx > VW + 160) return;
+  const done = S.results.boss.done, y = groundAt(LV.boss.x);
+  if (!done){
+    const near = Math.abs(P.x + P.w/2 - LV.boss.x) < 260;
+    drawBossShape(g, bx + 30, y, { t, mood: near ? 'laugh' : 'grin', hearts: 3 - (S.bossRound || 0) });
+    if (near && !quizOpen){
+      const txt = '하하하! 여기는 못 지나간다!'; g.font = '700 16px "Gowun Dodum", sans-serif'; const w = g.measureText(txt).width + 28;
+      const by = y - 250 + Math.sin(t/240)*3;
+      g.fillStyle = '#fff'; rr(g, bx + 30 - w/2, by - 22, w, 34, 14); g.fill(); g.beginPath(); g.moveTo(bx + 22, by + 12); g.lineTo(bx + 30, by + 22); g.lineTo(bx + 38, by + 12); g.fill();
+      g.fillStyle = '#1f3a1a'; g.textAlign = 'center'; g.fillText(txt, bx + 30, by);
+    }
+  } else {
+    // 길을 비켜 주고 언덕 옆에서 손을 흔들어요
+    const sx = bx + 110, sy = groundAt(LV.boss.x + 80);
+    drawBossShape(g, sx, sy + 6, { t, mood: 'happy', hearts: 0, scale: .62 });
+  }
+}
 function drawProgress(g, t){
   const x0 = 24, x1 = VW - 24, y = 22, k = (x1 - x0) / LV.width;
   g.fillStyle = 'rgba(255,255,255,.8)'; rr(g, x0 - 10, y - 13, x1 - x0 + 20, 26, 13); g.fill();
@@ -541,6 +616,7 @@ function drawProgress(g, t){
   g.fillStyle = '#7fb355'; rr(g, x0, y - 3, Math.max(6, (P.x + P.w/2)*k), 6, 3); g.fill();
   const blink = (Math.sin(t/(guide.on ? 120 : 260)) + 1)/2;
   LV.bells.forEach(b => { const d = S.results[b.id].done; g.fillStyle = d ? '#e3ad1f' : `rgba(201,86,75,${.5 + blink*.5})`; const r = d ? 5 : 5 + blink*2; E(g, x0 + b.x*k, y, r, r); });
+  { const bxp = x0 + LV.boss.x*k, d = S.results.boss.done; g.fillStyle = d ? '#e3ad1f' : '#2f7d45'; g.save(); g.translate(bxp, y); g.rotate(Math.PI/4); g.fillRect(-6, -6, 12, 12); g.restore(); }
   LV.gates.forEach(gt => { g.fillStyle = S.zonesOpen.includes(gt.zone) ? '#e3ad1f' : '#b23a32'; rr(g, x0 + gt.x*k - 4, y - 8, 8, 16, 2); g.fill(); });
   g.fillStyle = '#16392c'; E(g, x0 + (P.x + P.w/2)*k, y, 7.5, 7.5); g.fillStyle = '#fff'; E(g, x0 + (P.x + P.w/2)*k, y, 3, 3);
 }
@@ -568,13 +644,14 @@ function draw(t, dt){
   drawTheme(g, ZONES[zi].theme, t, 1);
   if (zi < ZONES.length - 1){ const edge = LV.zoneEnd[zi], a = Math.max(0, Math.min(1, (cx - (edge - 320)) / 640)); if (a > 0) drawTheme(g, ZONES[zi + 1].theme, t, a); }
   if (zi > 0){ const edge = LV.zoneStart[zi], a = Math.max(0, Math.min(1, ((edge + 320) - cx) / 640)); if (a > 0) drawTheme(g, ZONES[zi - 1].theme, t, a * .999); }
-  ZONES.forEach((z, i) => drawGroundSeg(g, LV.zoneStart[i], LV.zoneEnd[i] + 1, THEMES[z.theme]));
+  drawGround(g, THEMES.forest);
   LV.signs.forEach(s => drawSign(g, s));
   LV.platforms.forEach(p => drawPlatform(g, p));
   LV.gates.forEach(gt => drawGate(g, gt, t));
   const near = touching();
   LV.bells.forEach(b => drawBell(g, b, S.results[b.id].done, t, near === b.id));
   drawBonusBox(g, t);
+  drawBoss(g, t);
   LV.stars.forEach((s, i) => { if (!S.starsTaken.includes(i)) drawStar(g, s[0], s[1], t); });
   friends.forEach(f => drawFriend(g, f, t));
   drawPanda(g, P.x + P.w/2 - cam, P.y + P.h, { face:P.face, moving:Math.abs(P.vx) > 1, inAir:!P.onGround, joy:P.joy, blink:P.invuln > 0 && Math.floor(P.invuln*10) % 2 === 0, sq:P.sq, phase:P.phase });
@@ -588,7 +665,7 @@ function draw(t, dt){
 
 /* ================= 움직임과 충돌 ================= */
 const keys = { left:false, right:false, jump:false };
-let gateWarned = -1;
+let gateWarned = -1, bossArmed = true;
 const closedGate = () => LV.gates.find(gt => !S.zonesOpen.includes(gt.zone));
 function physics(dt){
   const want = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
@@ -605,13 +682,20 @@ function physics(dt){
   if (cg && nx + P.w > cg.x + 4){
     nx = cg.x + 4 - P.w; P.vx = 0;
     if (gateWarned !== cg.zone){ gateWarned = cg.zone; const left = MISSIONS.filter(m => m.zone === cg.zone && !S.results[m.id].done).length;
-      toast(`${cg.name}: 종 ${left}개를 더 울려야 열려요.`); }
+      toast(left ? `${cg.name}: 종 ${left}개를 더 울려야 열려요.` : `${cg.name}: 대나무 괴물의 문제를 풀어야 열려요.`); }
   } else if (cg && nx + P.w < cg.x - 80) gateWarned = -1;
+  if (!S.results.boss.done){
+    const wall = LV.boss.x - 40;
+    if (nx + P.w > wall){ nx = wall - P.w; P.vx = 0; if (bossArmed){ bossArmed = false; openBoss(); } }
+    else if (nx + P.w < wall - 140) bossArmed = true;
+  }
   P.x = nx;
   P.vy += 1550 * dt; if (P.vy > 950) P.vy = 950;
   P.y += P.vy * dt;
   const wasGround = P.onGround; P.onGround = false;
-  if (P.y + P.h >= GROUND){ P.y = GROUND - P.h; if (!wasGround && P.vy > 300) P.sq = .82; P.vy = 0; P.onGround = true; }
+  const gy = groundAt(P.x + P.w/2);
+  if (P.y + P.h >= gy){ P.y = gy - P.h; if (!wasGround && P.vy > 300) P.sq = .82; P.vy = 0; P.onGround = true; }
+  else if (wasGround && P.vy >= 0 && gy - (P.y + P.h) < 12){ P.y = gy - P.h; P.vy = 0; P.onGround = true; }
   if (P.vy >= 0) for (const pl of LV.platforms){
     if (prevBottom <= pl.y + 4 && P.y + P.h >= pl.y && P.x + P.w > pl.x + 6 && P.x < pl.x + pl.w - 6){ if (!wasGround) P.sq = .86; P.y = pl.y - P.h; P.vy = 0; P.onGround = true; }
   }
@@ -661,7 +745,7 @@ function physics(dt){
 function touching(){
   const cx = P.x + P.w/2;
   for (const b of LV.bells) if (Math.abs(cx - b.x) < 36 && P.y + P.h > GROUND - 150) return b.id;
-  const bx = LV.bonus; if (Math.abs(cx - bx.x) < 34 && Math.abs((P.y + P.h) - bx.y) < 50) return 'bonus';
+  const bx = LV.bonus; if (bx && Math.abs(cx - bx.x) < 34 && Math.abs((P.y + P.h) - bx.y) < 50) return 'bonus';
   return null;
 }
 const armed = {};
@@ -670,18 +754,19 @@ function checkTriggers(){
   ALL.forEach(m => { if (m.id !== id) armed[m.id] = true; });
   if (id && armed[id] !== false && !S.results[id].done){ armed[id] = false; openQuiz(ALL.find(m => m.id === id)); }
   const fg = LV.gates[LV.gates.length - 1];
-  if (S.zonesOpen.includes(fg.zone) && !S.finished && !quizOpen && P.x + P.w/2 > fg.x + 60) openFinale();
+  if (S.zonesOpen.includes(fg.zone) && !S.finished && !quizOpen && P.x + P.w/2 > fg.x + 60) finishGame();
 }
 const guide = { last:performance.now(), on:false };
 function guideTarget(){
-  const cg = closedGate(), limit = cg ? cg.x : LV.width;
-  const left = LV.bells.filter(b => !S.results[b.id].done && b.x < limit);
-  if (!left.length){ const og = LV.gates.find(gt => S.zonesOpen.includes(gt.zone) && gt.x > P.x); return og ? og.x + 50 : null; }
-  const cx = P.x + P.w/2; return left.reduce((a, b) => Math.abs(b.x - cx) < Math.abs(a.x - cx) ? b : a).x;
+  const cx = P.x + P.w/2, left = LV.bells.filter(b => !S.results[b.id].done);
+  if (left.length) return left.reduce((a, b) => Math.abs(b.x - cx) < Math.abs(a.x - cx) ? b : a).x;
+  if (!S.results.boss.done) return LV.boss.x;
+  const og = LV.gates.find(gt => S.zonesOpen.includes(gt.zone)); return og ? og.x + 50 : null;
 }
 function guideMsg(){
-  const cg = closedGate(), limit = cg ? cg.x : LV.width;
-  return LV.bells.some(b => !S.results[b.id].done && b.x < limit) ? '화살표 쪽에 아직 울리지 않은 종이 있어요!' : '화살표를 따라 열린 문으로 가요!';
+  if (LV.bells.some(b => !S.results[b.id].done)) return '화살표 쪽에 아직 울리지 않은 종이 있어요!';
+  if (!S.results.boss.done) return '언덕을 올라 대나무 괴물을 만나요!';
+  return '꼭대기 문으로 들어가요!';
 }
 function updateGuide(now){
   const tg = guideTarget();
@@ -691,12 +776,13 @@ function updateGuide(now){
 let toastTimer;
 function toast(txt, ms=2400){ const el = $('#toast'); el.textContent = txt; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.hidden = true, ms); }
 function checkZones(){
-  ZONES.forEach((z, zi) => {
-    if (!S.zonesOpen.includes(zi) && zoneDone(zi)){
-      S.zonesOpen.push(zi); persist();
-      setTimeout(() => { Snd.sfx.door(); toast(zi === ZONES.length - 1 ? `${z.name} 완료! 마지막 문이 열렸어요. 오른쪽으로 달려요!` : `${z.name} 완료! ${z.gate}이 열렸어요. 다음은 ${ZONES[zi + 1].name}!`, 3600); guide.on = true; }, 400);
-    }
-  });
+  if (!S.zonesOpen.includes(0) && zoneDone()){
+    S.zonesOpen.push(0); persist();
+    setTimeout(() => { Snd.sfx.door(); toast('꼭대기 문이 열렸어요! 문으로 들어가요!', 3200); guide.on = true; }, 600);
+  } else if (bellsDone() && !S.results.boss.done && !S.bellsToast){
+    S.bellsToast = true; persist();
+    setTimeout(() => { toast(`종 ${MISSIONS.length}개를 모두 울렸어요! 이제 언덕을 올라 대나무 괴물을 만나요!`, 3400); guide.on = true; }, 500);
+  }
 }
 
 /* ================= 퀴즈 ================= */
@@ -705,6 +791,38 @@ const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ co
 const pick = a => a[Math.floor(Math.random()*a.length)];
 const toneOf = id => SOUNDS[id] && SOUNDS[id].tone;
 function picCard(id, big){ const s = SOUNDS[id]; return `<div class="wordpic ${big ? 'big' : ''}"><span class="emo">${s.pic || ''}</span><span class="zh">${esc(s.text)}</span></div>`; }
+function bodySVG(set, words, decoy){
+  const ink = '#1f2a25';
+  if (set === 'face'){
+    const spots = { erduo: [[58, 48], [222, 48]], yanjing: [[104, 112], [176, 112]], bizi: [[140, 148]], zui: [[140, 184]] };
+    let h = `<svg class="bodysvg face" viewBox="0 0 280 240" role="img" aria-label="판다 얼굴">
+      <circle cx="58" cy="48" r="34" fill="${ink}"/><circle cx="222" cy="48" r="34" fill="${ink}"/>
+      <ellipse cx="140" cy="132" rx="112" ry="100" fill="#fff" stroke="${ink}" stroke-width="4"/>
+      <ellipse cx="104" cy="112" rx="26" ry="32" transform="rotate(-20 104 112)" fill="${ink}"/><ellipse cx="176" cy="112" rx="26" ry="32" transform="rotate(20 176 112)" fill="${ink}"/>
+      <circle cx="108" cy="108" r="9" fill="#fff"/><circle cx="172" cy="108" r="9" fill="#fff"/>
+      <ellipse cx="140" cy="148" rx="14" ry="10" fill="${ink}"/>
+      <path d="M124 180 Q140 196 156 180" stroke="${ink}" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="74" cy="160" rx="14" ry="8" fill="rgba(240,140,140,.5)"/><ellipse cx="206" cy="160" rx="14" ry="8" fill="rgba(240,140,140,.5)"/>`;
+    words.forEach(w => (spots[w] || []).forEach(([x, y]) => { h += `<circle class="spot" data-spot="${w}" cx="${x}" cy="${y}" r="26"/>`; }));
+    return h + '</svg>';
+  }
+  const spots = { tou: [[140, 62]], jianbang: [[92, 150], [188, 150]], xigai: [[112, 262], [168, 262]], jiao: [[106, 318], [174, 318]] };
+  const d = decoy && spots[decoy] ? spots[decoy][0] : null;
+  let h = `<svg class="bodysvg" viewBox="0 0 280 350" role="img" aria-label="판다 몸">
+    <circle cx="96" cy="26" r="20" fill="${ink}"/><circle cx="184" cy="26" r="20" fill="${ink}"/>
+    <ellipse cx="140" cy="68" rx="62" ry="54" fill="#fff" stroke="${ink}" stroke-width="4"/>
+    <ellipse cx="116" cy="64" rx="13" ry="17" transform="rotate(-20 116 64)" fill="${ink}"/><ellipse cx="164" cy="64" rx="13" ry="17" transform="rotate(20 164 64)" fill="${ink}"/>
+    <circle cx="118" cy="62" r="4" fill="#fff"/><circle cx="162" cy="62" r="4" fill="#fff"/><ellipse cx="140" cy="86" rx="7" ry="5" fill="${ink}"/>
+    <rect x="96" y="120" width="88" height="14" rx="7" fill="#25845f"/>
+    <path d="M86 140 Q140 124 194 140 L184 236 Q140 250 96 236 Z" fill="#fff" stroke="${ink}" stroke-width="4"/>
+    <rect x="62" y="140" width="30" height="80" rx="15" fill="${ink}" transform="rotate(12 77 140)"/>
+    <rect x="188" y="140" width="30" height="80" rx="15" fill="${ink}" transform="rotate(-12 203 140)"/>
+    <rect x="96" y="232" width="32" height="76" rx="14" fill="${ink}"/><rect x="152" y="232" width="32" height="76" rx="14" fill="${ink}"/>
+    <ellipse cx="106" cy="318" rx="26" ry="14" fill="${ink}"/><ellipse cx="174" cy="318" rx="26" ry="14" fill="${ink}"/>`;
+  words.forEach(w => (spots[w] || []).forEach(([x, y]) => { h += `<circle class="spot" data-spot="${w}" cx="${x}" cy="${y}" r="24"/>`; }));
+  if (d) h += `<text class="decoy" x="${d[0] + 30}" y="${d[1] + 12}" font-size="34">👈</text>`;
+  return h + '</svg>';
+}
 function openQuiz(m){
   const rec = S.results[m.id];
   Q = { m, rec, locked:false, sel:null, build:[], code:[], placed:{} };
@@ -717,6 +835,10 @@ function openQuiz(m){
       Q.seq = m.sets[rec.target]; Q.answer = Q.seq.map(toneOf).join('-'); break;
     case 'hearPick': Q.answer = m.sound; Q.main = m.sound; Q.opts = shuffle(m.options); break;
     case 'toneSort': Q.opts = shuffle(m.items); break;
+    case 'bodyPoint':
+      if (!rec.target){ rec.target = pick(m.words); persist(); }
+      Q.answer = rec.target; Q.main = rec.target; Q.decoy = m.set === 'body' ? pick(m.words.filter(w => w !== rec.target)) : null; break;
+    case 'matchScenes': Q.opts = shuffle(m.pairs.map(p => p.sound)); Q.scenes = shuffle(m.pairs); break;
     case 'choiceText': Q.opts = shuffle(m.options.map((o, i) => ({ ...o, i }))); Q.answer = String(m.options.findIndex(o => o.correct)); Q.main = m.sound; break;
     case 'hanziBuild': Q.answer = m.answer.join(''); Q.opts = shuffle(m.pieces); break;
     case 'sequence':
@@ -783,6 +905,14 @@ function renderQuiz(){
     case 'hanziBuild':
       h += src + `<div class="buildRow"><span class="bslot" id="b0">?</span><span class="plusS">+</span><span class="bslot" id="b1">?</span><span class="plusS">=</span><span class="bres" id="bres">?</span></div>
         <div class="pieces">${Q.opts.map(p => `<button class="piece" type="button" data-piece="${esc(p)}">${esc(p)}</button>`).join('')}</div>`; break;
+    case 'bodyPoint':
+      h += listen + `<div class="bodywrap">${bodySVG(m.set, m.words, Q.decoy)}</div>
+        ${Q.decoy ? '<p class="note center">👆 판다 손이 가리키는 곳에 속지 마세요! 소리를 따라가요.</p>' : ''}
+        <div class="bodylabel" id="bodyLabel"></div>`; break;
+    case 'matchScenes':
+      h += src + `<div class="phrases">${Q.opts.map(id => `<button class="phrase" type="button" data-phrase="${id}"><span class="zhl">${esc(SOUNDS[id].text)}</span><span class="py">${esc(SOUNDS[id].pinyin)}</span><span class="spk">▶</span></button>`).join('')}</div>
+        <div class="scenecards">${Q.scenes.map(p => `<button class="scenecard" type="button" data-scene="${p.sound}"><span class="emo">${esc(p.scene)}</span><span class="lab">${esc(p.label)}</span><span class="put" id="put-${p.sound}"></span></button>`).join('')}</div>
+        <p class="note center">① 인사말을 눌러 들어요 → ② 어울리는 그림을 눌러요</p>`; break;
     case 'sequence':
       h += listen + `<div class="choices c2">${shuffle(m.options).map(o => `<button class="opt" type="button" data-v="${o.join('-')}"><span class="lbl">${o.join(' - ')}</span><span class="seq">${o.map(k => contourSVG(+k, 'mini')).join('')}</span></button>`).join('')}</div>`; break;
   }
@@ -842,6 +972,33 @@ function renderQuiz(){
       } else { submit(`${id}→${k}`, false, bk, { keepEl:true }); bk.classList.add('shake'); setTimeout(() => bk.classList.remove('shake'), 500); }
     });
   }
+  if (m.type === 'bodyPoint'){
+    box.querySelectorAll('[data-spot]').forEach(sp => sp.addEventListener('click', () => {
+      if (Q.locked) return;
+      const w = sp.dataset.spot, ok = w === Q.answer, info = SOUNDS[w];
+      $('#bodyLabel').innerHTML = `<span class="zhl">${esc(info.text)}</span> <span class="py">${esc(info.pinyin)}</span> · ${esc(info.meaning)}`;
+      $('#bodyLabel').className = 'bodylabel ' + (ok ? 'ok' : 'no');
+      box.querySelectorAll(`[data-spot="${w}"]`).forEach(x => x.classList.add(ok ? 'right' : 'wrong'));
+      submit(w, ok, sp, { keepEl:true });
+    }));
+  }
+  if (m.type === 'matchScenes'){
+    box.querySelectorAll('[data-phrase]').forEach(b => b.onclick = () => {
+      if (Q.locked || b.classList.contains('done')) return;
+      Snd.say(b.dataset.phrase).then(updateSrc).catch(showPlayError);
+      box.querySelectorAll('.phrase').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); Q.sel = b;
+    });
+    box.querySelectorAll('[data-scene]').forEach(sc => sc.onclick = () => {
+      if (Q.locked || sc.classList.contains('done')) return;
+      if (!Q.sel){ toast('먼저 인사말을 눌러 들어요.'); return; }
+      const id = Q.sel.dataset.phrase, ok = id === sc.dataset.scene;
+      if (ok){
+        Snd.sfx.place(); Q.sel.classList.remove('sel'); Q.sel.classList.add('done'); sc.classList.add('done');
+        $('#put-' + id).innerHTML = `<span class="zhl">${esc(SOUNDS[id].text)}</span>`; Q.placed[id] = true; Q.sel = null;
+        if (Object.keys(Q.placed).length === m.pairs.length) submit('all', true, sc, { sortDone:true });
+      } else { submit(`${SOUNDS[id].text}→${sc.dataset.scene}`, false, sc, { keepEl:true }); sc.classList.add('shake'); setTimeout(() => sc.classList.remove('shake'), 500); }
+    });
+  }
   if (m.type === 'hanziBuild'){
     box.querySelectorAll('[data-piece]').forEach(b => b.onclick = () => {
       if (Q.locked || Q.build.length >= 2) return;
@@ -859,7 +1016,7 @@ function submit(v, correct, el, opt={}){
   if (!opt.keepEl && !opt.sortDone && el.classList.contains('wrong')) return;
   Snd.ensure();
   const { m, rec } = Q;
-  const sortType = m.type === 'toneSort';
+  const sortType = m.type === 'toneSort' || m.type === 'matchScenes';
   if (!rec.done){
     if (!sortType) rec.tries += 1;
     if (rec.first === null && (!sortType || !correct || opt.sortDone)){ rec.first = String(v); rec.firstCorrect = correct; }
@@ -901,13 +1058,105 @@ function burst(pts){
   const st = $('#stars'); if (!st) return;
   for (let i = 0; i < 18; i++){ const s = document.createElement('i'), a = Math.random()*Math.PI*2, r = 90 + Math.random()*120;
     s.style.left = '50%'; s.style.top = '45%'; s.style.setProperty('--dx', Math.cos(a)*r + 'px'); s.style.setProperty('--dy', Math.sin(a)*r + 'px'); st.appendChild(s); }
-  const p = document.createElement('div'); p.className = 'plus'; p.textContent = '+' + pts; st.appendChild(p);
+  if (pts > 0){ const p = document.createElement('div'); p.className = 'plus'; p.textContent = '+' + pts; st.appendChild(p); }
 }
 function closeQuiz(solved){
   if (Q && !Q.rec.done && solved !== true) toast('종 앞으로 다시 오면 문제를 이어서 풀 수 있어요.');
   $('#quiz').hidden = true; quizOpen = false; Q = null; guide.last = performance.now();
 }
-$('#quiz').addEventListener('click', e => { if (e.target.id === 'quiz' && Q && !Q.finale) closeQuiz(); });
+$('#quiz').addEventListener('click', e => { if (e.target.id === 'quiz' && Q && !Q.finale && !Q.boss) closeQuiz(); });
+
+/* ================= 언덕의 대나무 괴물 ================= */
+function bossSVG(mood){
+  const c = document.createElement('canvas'); c.width = 400; c.height = 460;
+  const g = c.getContext('2d'); g.scale(2, 2);
+  drawBossShape(g, 100, 222, { t: 0, mood, hearts: 0 });
+  return `<img class="bossimg" alt="${esc(D.boss.name)}" src="${c.toDataURL()}">`;
+}
+function bossTalk(mood, text, extra=''){
+  return `<div class="bosstalk"><div class="bosspic">${bossSVG(mood)}</div><div class="bubble"><b>${esc(D.boss.name)}</b><p>${esc(text)}</p></div></div>${extra}`;
+}
+function openBoss(){
+  quizOpen = true; keys.left = keys.right = keys.jump = false; P.vx = 0;
+  document.querySelectorAll('#pad button').forEach(b => b.classList.remove('on'));
+  const rec = S.results.boss;
+  Q = { boss:true, m: BOSS, rec, locked:false };
+  $('#quiz').hidden = false; Snd.ensure(); Snd.startBgm();
+  const box = $('#qbox');
+  if (!bellsDone()){
+    box.innerHTML = bossTalk('grin', D.boss.notReady, `<button class="btn primary" type="button" id="bossBack">종 찾으러 가기</button>`);
+    Snd.sfx.bump();
+    $('#bossBack').onclick = () => { closeBossWindow(); P.kx = -420; guide.on = true; };
+    return;
+  }
+  laugh();
+  box.innerHTML = bossTalk('laugh', D.boss.intro, `<div class="bossrule">대화가 상황에 <b>어울리면 O</b>, <b>어울리지 않으면 X</b>를 골라요. 문제는 모두 ${D.boss.rounds.length}개!</div>
+    <button class="btn primary" type="button" id="bossGo">도전!</button>`);
+  $('#bossGo').onclick = () => bossRound();
+}
+function laugh(){ Snd.ensure(); [0, 140, 280].forEach((d, i) => setTimeout(() => Snd.sfx.stomp(), d)); }
+function closeBossWindow(){ $('#quiz').hidden = true; quizOpen = false; Q = null; guide.last = performance.now(); bossArmed = false; }
+function bossRound(){
+  const rec = S.results.boss; rec.rounds = rec.rounds || [];
+  const i = S.bossRound || 0, r = D.boss.rounds[i], n = D.boss.rounds.length;
+  if (!rec.rounds[i]) rec.rounds[i] = { first:null, firstCorrect:null, tries:0 };
+  const A = SOUNDS[r.a], B = SOUNDS[r.b];
+  Q.round = i; Q.locked = false;
+  const hearts = Array.from({ length: n }, (_, k) => `<span class="leaf ${k < n - i ? 'on' : ''}">🍃</span>`).join('');
+  $('#qbox').innerHTML = `<div class="stars" id="stars"></div>
+    <div class="qhead"><span class="place">${esc(D.boss.name)}의 문제 ${i + 1} / ${n}</span><span class="leaves">${hearts}</span></div>
+    <div class="scene">${esc(r.scene)}</div>
+    <div class="qtext">${esc(r.situation)}<br>이 대화가 상황에 어울리나요?</div>
+    <div class="dialog">
+      <div class="say left"><span class="who">🐼</span><span class="zhl">${esc(A.text)}</span><span class="py">${esc(A.pinyin)}</span></div>
+      <div class="say right"><span class="zhl">${esc(B.text)}</span><span class="py">${esc(B.pinyin)}</span><span class="who">🐰</span></div>
+    </div>
+    <div class="listen"><button class="btn play" type="button" id="qplay">▶ 대화 듣기</button><button class="btn" type="button" id="qslow">🐢 천천히</button></div>
+    <div class="srcnote" id="srcnote">${sourceBadge()}</div>
+    <div class="ox"><button class="oxbtn o" type="button" data-ox="O">O<small>어울려요</small></button><button class="oxbtn x" type="button" data-ox="X">X<small>어울리지 않아요</small></button></div>
+    <div class="feedback" id="feedback" aria-live="polite"></div><div id="hintArea"></div>`;
+  const play = slow => Snd.saySeq([r.a, r.b], slow, 650).then(updateSrc).catch(showPlayError);
+  $('#qplay').onclick = () => play(false); $('#qslow').onclick = () => play(true);
+  setTimeout(() => { if (Q && Q.boss && Q.round === i) play(false); }, 400);
+  document.querySelectorAll('[data-ox]').forEach(b => b.onclick = () => bossAnswer(b.dataset.ox, b));
+}
+function bossAnswer(v, el){
+  if (!Q || Q.locked) return;
+  const rec = S.results.boss, i = Q.round, r = D.boss.rounds[i], rr0 = rec.rounds[i], ok = v === r.answer;
+  rr0.tries += 1; rec.tries += 1;
+  if (rr0.first === null){ rr0.first = v; rr0.firstCorrect = ok; }
+  if (!ok) rec.wrongs.push(`${i + 1}:${v}`);
+  persist();
+  if (!ok){
+    el.classList.add('wrong'); Snd.sfx.wrong(); setTimeout(laugh, 250);
+    const fb = $('#feedback'); fb.className = 'feedback bad'; fb.textContent = D.boss.wrongLine;
+    $('#hintArea').innerHTML = `<div class="hint"><span>💡</span><div><b>힌트</b> ${esc(r.hint)}</div></div>`;
+    return;
+  }
+  Q.locked = true; el.classList.add('right'); Snd.sfx.correct();
+  S.bossRound = i + 1; persist();
+  const fb = $('#feedback'); fb.className = 'feedback good';
+  fb.textContent = r.answer === 'X' ? '정답! 어울리지 않아요.' : '정답! 잘 어울려요.';
+  let fix = '';
+  if (r.fix){ const F = SOUNDS[r.fix]; fix = `<div class="fix">이렇게 말하면 어울려요: <span class="zhl">${esc(F.text)}</span> <span class="py">${esc(F.pinyin)}</span> <button class="mini-listen" type="button" id="fixPlay">▶ 듣기</button></div>`; }
+  const last = i + 1 >= D.boss.rounds.length;
+  $('#hintArea').innerHTML = fix + `<button class="btn primary" type="button" id="bossNext">${last ? '대나무 괴물에게 가기' : '다음 문제'}</button>`;
+  if (r.fix){ $('#fixPlay').onclick = () => Snd.say(r.fix).then(updateSrc).catch(showPlayError); setTimeout(() => Snd.say(r.fix).catch(() => {}), 500); }
+  burst(0);
+  $('#bossNext').onclick = () => last ? bossWin() : bossRound();
+}
+function bossWin(){
+  const rec = S.results.boss;
+  rec.first = (rec.rounds || []).map(x => x && x.first).join(',');
+  rec.firstCorrect = (rec.rounds || []).every(x => x && x.firstCorrect);
+  const pts = rec.wrongs.length === 0 ? D.points.bossFirstTry : D.points.bossRetry;
+  if (!rec.done){ rec.done = true; rec.doneAt = Date.now(); rec.points = pts; S.learn += pts; persist(); }
+  Snd.sfx.fanfare();
+  $('#qbox').innerHTML = `<div class="stars" id="stars"></div>` + bossTalk('happy', D.boss.outro, `<div class="feedback good">학습 점수 +${rec.points}</div>
+    <button class="btn primary" type="button" id="bossBye">꼭대기로 올라가기</button>`);
+  burst(rec.points);
+  $('#bossBye').onclick = () => { closeBossWindow(); P.joy = 1.2; renderHud(); checkZones(); };
+}
 
 /* 마지막 문: 수업 시작 인사 주고받기 (점수 없음) */
 function openFinale(){
@@ -937,8 +1186,8 @@ function renderHud(){
   $('#learnScore').textContent = S.learn; $('#starScore').textContent = S.starPts;
   const zi = Math.min(zoneAt(P.x), ZONES.length - 1), ms = MISSIONS.filter(m => m.zone === zi);
   $('#zoneName').textContent = ZONES[zi].name;
-  $('#bells').innerHTML = ms.map(m => bellSVG(S.results[m.id].done)).join('');
-  $('#total').textContent = `${MISSIONS.filter(m => S.results[m.id].done).length}/${MISSIONS.length}`;
+  $('#bells').innerHTML = ms.map(m => bellSVG(S.results[m.id].done)).join('') + `<span class="bossmini ${S.results.boss.done ? 'on' : ''}" title="대나무 괴물">🎋</span>`;
+  $('#total').textContent = `${ALL.filter(m => S.results[m.id].done).length}/${ALL.length}`;
   $('#who').textContent = `${S.name} #${S.tag}`;
 }
 let hudZone = -1;
@@ -947,7 +1196,7 @@ let hudZone = -1;
 const KEYS = { ArrowLeft:'left', KeyA:'left', ArrowRight:'right', KeyD:'right', ArrowUp:'jump', KeyW:'jump', Space:'jump' };
 const canControl = () => !$('#play').hidden && !quizOpen && $('#soundPanel').hidden && $('#helpPanel').hidden && !S.finished;
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape'){ if (quizOpen && Q && !Q.finale) closeQuiz(); $('#soundPanel').hidden = true; $('#helpPanel').hidden = true; return; }
+  if (e.key === 'Escape'){ if (quizOpen && Q && !Q.finale && !Q.boss) closeQuiz(); $('#soundPanel').hidden = true; $('#helpPanel').hidden = true; return; }
   const k = KEYS[e.code]; if (!k || !S || !canControl()) return;
   e.preventDefault(); Snd.ensure(); Snd.startBgm();
   if (k === 'jump'){ if (!e.repeat) keys.jump = true; } else keys[k] = true;
@@ -974,7 +1223,7 @@ const cleanName = v => v.replace(/[<>"'&]/g, '').trim().slice(0, 12);
 function initStart(){
   $('#stageLabel').textContent = `중국어 탐험대 · ${D.stageLabel}`;
   $('#gameTitle').innerHTML = `${esc(D.title)}<small>${esc(D.subtitle)}</small>`;
-  $('#zoneList').innerHTML = ZONES.map((z, i) => `<span>${i + 1}. ${esc(z.name)}</span>`).join('');
+  $('#zoneList').innerHTML = [`🔔 소리의 종 ${MISSIONS.length}개`, '🎋 언덕의 대나무 괴물', '🚪 꼭대기 문'].map(t => `<span>${t}</span>`).join('');
   const saved = store.load();
   if (saved && saved.name && saved.results){
     $('#resumeBox').hidden = false; $('#newBox').hidden = true;
@@ -984,7 +1233,7 @@ function initStart(){
   $('#newBtn').onclick = () => { $('#resumeBox').hidden = true; $('#newBox').hidden = false; $('#nameInput').focus(); };
   $('#testBtn').onclick = () => {
     Snd.ensure(); $('#testResult').textContent = '재생 중…';
-    Snd.say('ma1').then(() => $('#testResult').innerHTML = '들리나요? ' + sourceBadge()).catch(() => $('#testResult').innerHTML = sourceBadge());
+    Snd.say('xiexie').then(() => $('#testResult').innerHTML = '들리나요? ' + sourceBadge()).catch(() => $('#testResult').innerHTML = sourceBadge());
   };
   $('#startBtn').onclick = startNew;
   $('#nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') startNew(); });
@@ -1003,15 +1252,16 @@ function renderStory(){
   $('#nextBtn').textContent = storyStep === D.story.length - 1 ? '모험 출발!' : '다음';
   const g = $('#storyCanvas').getContext('2d');
   g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, 220, 150);
-  const themeName = ['forest', 'forest', 'village'][storyStep] || 'forest', th = THEMES[themeName];
+  const th = THEMES.forest;
   const sky = g.createLinearGradient(0, 0, 0, 150); sky.addColorStop(0, th.sky[0]); sky.addColorStop(1, th.sky[1]);
   g.save(); rr(g, 0, 0, 220, 150, 18); g.clip();
   g.fillStyle = sky; g.fillRect(0, 0, 220, 150);
   g.fillStyle = th.far[0]; g.beginPath(); g.moveTo(0, 150); for (let x = 0; x <= 220; x += 10) g.lineTo(x, 92 - 16*Math.sin(x/40)); g.lineTo(220, 150); g.fill();
   for (let i = 0; i < 5; i++){ g.fillStyle = '#8cbf8a'; rr(g, 14 + i*46, 28, 7, 96, 3.5); g.fill(); g.fillStyle = '#7fb47e'; leaf(g, 17 + i*46, 40, 18, -.6); }
   g.fillStyle = th.grass; g.fillRect(0, 118, 220, 32);
-  if (storyStep === 1){ g.fillStyle = '#b23a32'; rr(g, 150, 52, 8, 68, 3); g.fill(); rr(g, 192, 52, 8, 68, 3); g.fill(); g.fillStyle = '#6b4b2e'; g.fillRect(158, 62, 34, 56); g.fillStyle = '#e3ad1f'; E(g, 175, 90, 5, 5);
+  if (storyStep === -1){ g.fillStyle = '#b23a32'; rr(g, 150, 52, 8, 68, 3); g.fill(); rr(g, 192, 52, 8, 68, 3); g.fill(); g.fillStyle = '#6b4b2e'; g.fillRect(158, 62, 34, 56); g.fillStyle = '#e3ad1f'; E(g, 175, 90, 5, 5);
     g.fillStyle = '#16392c'; g.font = '700 22px sans-serif'; g.textAlign = 'center'; g.fillText('?', 122, 50); g.fillText('?', 206, 40); }
+  if (storyStep === 1){ drawBossShape(g, 176, 122, { t: 0, mood: 'laugh', hearts: 0, scale: .5 }); }
   if (storyStep === 2){ [[150, 60], [178, 46], [204, 62]].forEach(([x, y]) => { g.fillStyle = '#e3ad1f'; g.beginPath(); g.moveTo(x - 8, y + 8); g.quadraticCurveTo(x - 9, y - 8, x, y - 10); g.quadraticCurveTo(x + 9, y - 8, x + 8, y + 8); g.fill(); }); }
   drawPanda(g, 80, 122, { joy: storyStep === 2 ? .5 : 0 });
   g.restore();
@@ -1023,6 +1273,8 @@ function enterPlay(){
   $('#pad').hidden = !touchSeen;
   P.x = Math.max(0, Math.min(LV.width - 200, S.x || 90)); P.y = GROUND - P.h; P.vx = P.vy = P.kx = 0; P.onGround = true;
   const cg = closedGate(); if (cg && P.x + P.w > cg.x) P.x = cg.x - 90;
+  if (!S.results.boss.done && P.x + P.w > LV.boss.x - 60) P.x = LV.boss.x - 220;
+  P.y = groundAt(P.x + P.w/2) - P.h; bossArmed = true;
   guide.last = performance.now(); guide.on = false; camReady = false;
   ALL.forEach(m => armed[m.id] = true);
   resize(); renderHud(); requestAnimationFrame(resize);
@@ -1036,15 +1288,15 @@ function finishGame(){
   const first = MISSIONS.filter(m => S.results[m.id].firstCorrect === true).length;
   $('#endLearn').textContent = S.learn; $('#endStar').textContent = S.starPts; $('#endTotal').textContent = S.learn + S.starPts;
   $('#endName').textContent = `${S.name} #${S.tag}`;
-  $('#endFirst').textContent = `처음에 맞힌 문제 ${first} / ${MISSIONS.length}`;
-  $('#endZones').innerHTML = ZONES.map((z, zi) => { const ms = MISSIONS.filter(m => m.zone === zi), f = ms.filter(m => S.results[m.id].firstCorrect === true).length;
-    return `<div><small>${esc(z.name)}</small><b>${f}/${ms.length}</b></div>`; }).join('');
-  $('#endBonus').textContent = S.results.bonus.done ? '획득!' : '찾지 못함';
+  const br = (S.results.boss.rounds || []).filter(x => x && x.firstCorrect).length;
+  $('#endFirst').textContent = `처음에 맞힌 문제 ${first + br} / ${MISSIONS.length + D.boss.rounds.length}`;
+  $('#endZones').innerHTML = `<div><small>소리의 종</small><b>${first}/${MISSIONS.length}</b></div><div><small>${esc(D.boss.name)}</small><b>${br}/${D.boss.rounds.length}</b></div>`;
+  $('#endBonus').textContent = `${S.stomped ? S.stomped.length : 0}마리`;
   $('#nextName').textContent = D.nextStage; $('#nextLine').textContent = D.nextStageLine;
   $('#saveStatus').innerHTML = '💾 결과가 이 기기에 저장되었어요. <span class="note">(시범판: 선생님 화면 연결은 다음 단계에서 추가됩니다)</span>';
-  setTimeout(() => Snd.say('nihao').catch(() => {}), 1300);
+  setTimeout(() => Snd.say('zaijian').catch(() => {}), 1300);
 }
-$('#nihaoBtn').onclick = () => Snd.say('nihao').catch(() => {});
+$('#nihaoBtn').onclick = () => Snd.say('zaijian').catch(() => {});
 $('#replayBtn').onclick = () => { show('#play'); camReady = false; resize(); renderHud(); toast('남은 별을 모으며 자유롭게 달려 보세요!'); };
 
 /* 설정·도움말 */
@@ -1081,7 +1333,7 @@ function loop(now){
   } catch(err){ console.error(err); }
   requestAnimationFrame(loop);
 }
-window.__PANDA_LEVEL = LV; window.__PANDA_FRIENDS = friends; window.__PANDA_P = P; // 테스트용 (읽기 전용)
+window.__PANDA_LEVEL = LV; window.__PANDA_GROUND = groundAt; window.__PANDA_FRIENDS = friends; window.__PANDA_P = P; // 테스트용 (읽기 전용)
 initStart();
 requestAnimationFrame(loop);
 })();

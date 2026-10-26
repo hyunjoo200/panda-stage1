@@ -250,3 +250,58 @@ input[type=text]:focus{border-color:var(--jade);outline:none}
 @keyframes pulse{50%{transform:scale(1.06)}}
 @media (max-width:520px){.sortItems,.baskets,.pieces,.keypad{gap:6px}.wordpic .emo{font-size:28px}.slotN{width:50px;height:56px}}
 @media (max-width:600px){.totalbox{display:none}}
+
+/* ---------- 2차시: 몸 짚기, 상황 짝짓기, 대나무 괴물 ---------- */
+.bossmini{font-size:18px;opacity:.35;filter:grayscale(1)}.bossmini.on{opacity:1;filter:none}
+.bodywrap{display:flex;justify-content:center;background:#eaf3e4;border-radius:18px;padding:10px}
+.bodysvg{width:min(240px,62vw);height:auto;touch-action:manipulation}
+.bodysvg.face{width:min(280px,72vw)}
+.bodysvg .spot{fill:rgba(79,166,204,.18);stroke:#4fa6cc;stroke-width:3;stroke-dasharray:6 5;cursor:pointer;transition:fill .15s}
+.bodysvg .spot:hover{fill:rgba(79,166,204,.38)}
+.bodysvg .spot.right{fill:rgba(227,173,31,.55);stroke:#b8860b;stroke-dasharray:none}
+.bodysvg .spot.wrong{fill:rgba(201,86,75,.3);stroke:#c9564b}
+.bodysvg .decoy{pointer-events:none}
+.bodylabel{text-align:center;font-size:18px;min-height:1.6em;font-weight:700}
+.bodylabel .zhl{font-size:24px}.bodylabel.ok{color:var(--jade)}.bodylabel.no{color:var(--miss)}
+.phrases{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.phrase{border:3px solid var(--line);background:#fff;border-radius:16px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.phrase .zhl{font-size:24px;color:var(--forest)}.phrase .py{font-size:14px;color:var(--ink-soft)}.phrase .spk{font-size:12px;color:#245e7b}
+.phrase.sel{border-color:var(--pond);background:#eef7fb;transform:translateY(-3px)}
+.phrase.done{opacity:.3;pointer-events:none}
+.scenecards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.scenecard{border:0;border-radius:16px;background:linear-gradient(#fff9ec,#f3e4c9);min-height:120px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;box-shadow:inset 0 -5px 0 rgba(0,0,0,.08)}
+.scenecard .emo{font-size:30px}.scenecard .lab{font-size:14px;color:#3d2a16;font-weight:700;line-height:1.3}
+.scenecard .put{min-height:30px}.scenecard .put .zhl{font-size:22px;background:#fff8e1;border:2px solid var(--gold);border-radius:10px;padding:0 8px;color:var(--forest)}
+.scenecard.done{background:linear-gradient(#fffbe8,#ffeeb0)}
+.bosstalk{display:flex;gap:12px;align-items:flex-end}
+.bosspic{flex:none;width:130px}.bossimg{width:130px;height:auto;display:block}
+.bubble{position:relative;background:#eaf3e4;border-radius:18px;padding:12px 14px;flex:1;min-width:0}
+.bubble::before{content:'';position:absolute;left:-10px;bottom:24px;border:10px solid transparent;border-right-color:#eaf3e4;border-left:0}
+.bubble b{font-family:var(--f-display);font-weight:400;font-size:20px;color:#2f5f24}
+.bubble p{margin:4px 0 0;font-size:18px;line-height:1.5;font-weight:700}
+.bossrule{background:#fff4d6;border-radius:14px;padding:10px 12px;text-align:center;line-height:1.5}
+.leaves{display:flex;gap:2px}.leaf{font-size:18px;opacity:.25;filter:grayscale(1)}.leaf.on{opacity:1;filter:none}
+.dialog{display:flex;flex-direction:column;gap:8px}
+.say{display:flex;align-items:center;gap:8px;border-radius:16px;padding:8px 12px;max-width:85%}
+.say .who{font-size:28px}.say .zhl{font-size:26px;color:var(--forest)}.say .py{font-size:14px;color:var(--ink-soft)}
+.say.left{background:#e7f2f7;align-self:flex-start}.say.right{background:#fff1d6;align-self:flex-end}
+.ox{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.oxbtn{border:0;border-radius:18px;min-height:96px;font-family:var(--f-display);font-size:52px;line-height:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#fff}
+.oxbtn small{font-family:var(--f-body);font-size:14px;font-weight:700}
+.oxbtn.o{background:#2f8fbf;box-shadow:0 5px 0 #1f6a8f}.oxbtn.x{background:#d0593f;box-shadow:0 5px 0 #9c3f2c}
+.oxbtn.wrong{opacity:.4}.oxbtn.right{outline:5px solid var(--gold);outline-offset:3px}
+.fix{background:#eaf3e4;border-radius:14px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-weight:700}
+.fix .zhl{font-size:24px;color:var(--forest)}
+@media (max-width:520px){.phrases,.scenecards{gap:5px}.scenecard .lab{font-size:12px}.bosspic,.bossimg{width:90px}.bubble p{font-size:16px}}
+@media (max-height:520px){
+  .qbox{padding:12px 14px;gap:8px}
+  .qtext{font-size:16px}
+  .scene{font-size:22px;padding:4px}
+  .dialog{flex-direction:row;justify-content:space-between}
+  .say{max-width:none;padding:4px 10px}.say .zhl{font-size:20px}.say .who{font-size:20px}
+  .oxbtn{min-height:58px;font-size:34px}
+  .listen .btn{padding:6px 10px;min-height:38px;font-size:15px}
+  .bosspic,.bossimg{width:84px}.bubble p{font-size:15px}
+  .bodysvg{width:min(150px,40vw)}.bodysvg.face{width:min(190px,48vw)}
+  .scenecard{min-height:96px}.phrase .zhl{font-size:20px}
+}

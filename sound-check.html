@@ -44,7 +44,7 @@ a{color:var(--jade);font-weight:700}
   </section>
 
   <section class="step">
-    <h2><span>2</span>녹음 파일 (audio/ma1.mp3)</h2>
+    <h2><span>2</span>녹음 파일 (audio 폴더)</h2>
     <p>선생님이 올린 녹음 파일이 있는지 확인해요. 아직 안 올렸다면 '없음'이 정상이에요.</p>
     <button type="button" id="b2">녹음 파일 확인</button>
     <div class="res" id="r2"></div>
@@ -52,8 +52,8 @@ a{color:var(--jade);font-weight:700}
 
   <section class="step">
     <h2><span>3</span>온라인 자동 음성 (구글)</h2>
-    <p>'mā(妈)' 소리가 나는지 들어 보세요. 인터넷이 연결되어 있어야 해요.</p>
-    <button type="button" id="b3">mā 들어 보기</button>
+    <p>중국어 소리가 나는지 들어 보세요. 인터넷이 연결되어 있어야 해요.</p>
+    <button type="button" id="b3">중국어 소리 들어 보기</button>
     <div class="ask" id="a3" hidden><button type="button" data-a="3" data-v="y">들려요</button><button type="button" data-a="3" data-v="n">안 들려요</button></div>
     <div class="res" id="r3"></div>
   </section>
@@ -61,7 +61,7 @@ a{color:var(--jade);font-weight:700}
   <section class="step">
     <h2><span>4</span>기기에 들어 있는 중국어 음성</h2>
     <p>3번이 안 될 때 쓰는 마지막 방법이에요. 기기에 중국어 음성이 깔려 있어야 해요.</p>
-    <button type="button" id="b4">기기 음성으로 mā 듣기</button>
+    <button type="button" id="b4">기기 음성으로 듣기</button>
     <div class="ask" id="a4" hidden><button type="button" data-a="4" data-v="y">들려요</button><button type="button" data-a="4" data-v="n">안 들려요</button></div>
     <div class="res" id="r4"></div>
   </section>
@@ -84,6 +84,8 @@ const isAndroid = /Android/.test(ua);
 const inApp = /KAKAOTALK|NAVER|Instagram|FBAN|FBAV|Line\/|DaumApps|everytimeApp|; wv\)/i.test(ua);
 const appName = /KAKAOTALK/i.test(ua) ? '카카오톡' : /NAVER/i.test(ua) ? '네이버' : /Instagram/i.test(ua) ? '인스타그램' : /FBAN|FBAV/.test(ua) ? '페이스북' : /Line\//.test(ua) ? '라인' : '앱';
 const R = {};
+const firstId = () => D.audio.sounds.ma1 ? 'ma1' : Object.keys(D.audio.sounds)[0];
+const firstFile = () => (D.audio.sounds[firstId()].file || `audio/${firstId()}.mp3`);
 $('#env').innerHTML = `기기: <b>${isIOS ? '아이폰·아이패드' : isAndroid ? '안드로이드' : 'PC 또는 기타'}</b> · 브라우저: <b>${inApp ? appName + ' 안의 브라우저' : /CriOS|Chrome/.test(ua) ? '크롬' : /Safari/.test(ua) ? '사파리' : '기타'}</b>`
   + (inApp ? `<br>⚠ ${appName} 안에서 열린 화면은 소리가 막히는 경우가 많아요. 오른쪽 위 메뉴에서 <b>'다른 브라우저로 열기'</b>를 눌러 크롬이나 사파리로 열어 주세요.` : '');
 
@@ -120,13 +122,13 @@ function tryPlay(url){
 }
 $('#b2').onclick = async () => {
   show(2, 'warn', '확인 중…');
-  try { await tryPlay((D.audio.sounds.ma1.file || 'audio/ma1.mp3')); R[2] = 'ok'; show(2, 'ok', '✔ 녹음 파일이 있어요. 지금 나오는 소리가 녹음 파일이에요.'); }
+  try { await tryPlay(firstFile()); R[2] = 'ok'; show(2, 'ok', '✔ 녹음 파일이 있어요. 지금 나오는 소리가 녹음 파일이에요.'); }
   catch(e){ R[2] = 'none'; show(2, e === 'blocked' ? 'bad' : 'warn', e === 'blocked' ? '✘ 브라우저가 재생을 막았어요.' : '녹음 파일 없음 (아직 안 올렸다면 정상이에요)'); }
   advise();
 };
 $('#b3').onclick = async () => {
   show(3, 'warn', '불러오는 중…');
-  try { await tryPlay(D.audio.onlineVoiceUrl + encodeURIComponent(D.audio.sounds.ma1.text)); show(3, 'warn', '소리가 났나요?'); ask(3); }
+  try { await tryPlay(D.audio.onlineVoiceUrl + encodeURIComponent((D.audio.sounds.ma1 || Object.values(D.audio.sounds)[0]).text)); show(3, 'warn', '소리가 났나요?'); ask(3); }
   catch(e){ R[3] = e; show(3, 'bad', e === 'blocked' ? '✘ 브라우저가 재생을 막았어요.' : e === 'timeout' ? '✘ 응답이 너무 늦어요. 인터넷 연결을 확인해 주세요.' : '✘ 온라인 음성에 연결하지 못했어요.'); advise(); }
 };
 function voices(){ return window.speechSynthesis ? speechSynthesis.getVoices() : []; }
@@ -134,7 +136,7 @@ if (window.speechSynthesis){ voices(); speechSynthesis.onvoiceschanged = () => {
 $('#b4').onclick = () => {
   if (!window.speechSynthesis){ R[4] = 'none'; show(4, 'bad', '✘ 이 브라우저는 기기 음성을 지원하지 않아요.'); advise(); return; }
   const zh = voices().filter(v => /^zh|cmn/i.test(v.lang));
-  const u = new SpeechSynthesisUtterance('妈'); u.lang = 'zh-CN'; u.rate = .85;
+  const u = new SpeechSynthesisUtterance(D.audio.sounds[firstId()].text); u.lang = 'zh-CN'; u.rate = .85;
   const v = zh.find(v => /CN/i.test(v.lang)) || zh[0]; if (v) u.voice = v;
   speechSynthesis.cancel(); speechSynthesis.speak(u);
   if (voices().length && !zh.length){ R[4] = 'none'; show(4, 'bad', '✘ 기기에 중국어 음성이 없어요.'); advise(); return; }
@@ -153,7 +155,7 @@ function advise(){
   else if (R[3] === 'no' || R[3] === 'load' || R[3] === 'timeout' || R[3] === 'blocked'){
     tips.push('온라인 음성이 이 기기·인터넷에서 막혀 있어요. 학교 와이파이가 막는 경우도 있으니 휴대폰 데이터로도 한 번 시험해 보세요.');
     if (R[4] === 'ok') tips.push('대신 기기 음성(4번)은 되니 게임은 그 소리로 진행돼요. 다만 성조가 검수되지 않은 임시 음성이에요.');
-    else tips.push('가장 확실한 해결책은 <b>녹음 파일(ma1~ma4.mp3)</b>을 audio 폴더에 올리는 거예요. 그러면 인터넷 음성이나 기기 음성 없이도 모든 기기에서 같은 소리가 나요.');
+    else tips.push('가장 확실한 해결책은 <b>녹음 파일(MP3)</b>을 audio 폴더에 올리는 거예요 (audio-list.html에 목록이 있어요). 그러면 인터넷 음성이나 기기 음성 없이도 모든 기기에서 같은 소리가 나요.');
   }
   if (R[4] === 'none' && isAndroid) tips.push('안드로이드: 설정 → 일반(또는 접근성) → 텍스트 음성 변환 → Google 음성 엔진 → 언어에서 <b>중국어(중국)</b> 음성을 내려받을 수 있어요.');
   if (R[4] === 'none' && isIOS) tips.push('아이폰: 설정 → 손쉬운 사용 → 읽기 및 말하기 → 음성 → <b>중국어(중국 본토)</b> 음성을 내려받을 수 있어요.');
