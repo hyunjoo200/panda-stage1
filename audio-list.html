@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>음성 파일 목록</title>
+<style>
+:root{--forest:#16392c;--jade:#25845f;--mist:#e9f2e4;--paper:#fbfdf8;--ink:#1b2620;--soft:#4f6157;--line:#cfdcc9;color-scheme:light}
+body{margin:0;background:var(--mist);color:var(--ink);font-family:'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;word-break:keep-all;line-height:1.5;padding:20px max(16px,env(safe-area-inset-left,0px))}
+main{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1{margin:0;color:var(--forest);font-size:26px}
+.box{background:var(--paper);border-radius:16px;padding:16px;box-shadow:0 0 0 1px rgba(22,57,44,.08)}
+ol{margin:0;padding-left:20px}li{margin:4px 0}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px;background:var(--paper);border-radius:12px;overflow:hidden}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{background:var(--forest);color:#eaf4e4;font-weight:700}
+td.zh{font-size:20px}
+code{background:#eef3ec;padding:2px 6px;border-radius:6px;font-size:14px}
+a.btn{display:inline-block;background:var(--jade);color:#fff;text-decoration:none;font-weight:700;padding:6px 12px;border-radius:10px}
+.st{font-size:13px;color:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+  <h1>🎙️ 음성 파일 목록</h1>
+  <div class="box">
+    <b>휴대폰에서 소리가 안 날 때 가장 확실한 방법</b>은 아래 소리를 MP3 파일로 저장해 GitHub의 <code>audio</code> 폴더에 올리는 거예요.
+    <ol>
+      <li><b>컴퓨터 크롬</b>에서 이 페이지를 열어요.</li>
+      <li>'열기'를 누르면 새 탭에 재생기가 나와요. 재생기의 <b>⋮ → 다운로드</b>를 눌러요.</li>
+      <li>저장할 때 이름을 표의 <b>파일 이름</b>으로 바꿔요. (예: <code>ma1.mp3</code>)</li>
+      <li>저장한 파일을 직접 들어 보고 성조가 맞는지 확인한 뒤, GitHub의 <code>audio</code> 폴더에 올려요.</li>
+    </ol>
+    <p class="st">구글 자동 음성은 검수된 녹음이 아니에요. 어색한 소리는 선생님이 직접 녹음해 같은 이름으로 바꾸면 됩니다. '있음'은 이미 audio 폴더에 올라간 파일이에요.</p>
+  </div>
+  <div class="wrap"><table id="tbl"><thead><tr><th>파일 이름</th><th>중국어</th><th>병음</th><th>올렸나요?</th><th>온라인 음성</th></tr></thead><tbody></tbody></table></div>
+  <p><a href="index.html">← 게임으로 돌아가기</a></p>
+</main>
+<script src="game-data.js"></script>
+<script>
+const A = window.GAME_DATA.audio, tb = document.querySelector('#tbl tbody');
+Object.entries(A.sounds).forEach(([id, s]) => {
+  const file = s.file || `audio/${id}.mp3`, tr = document.createElement('tr');
+  tr.innerHTML = `<td><code>${file.replace('audio/','')}</code></td><td class="zh">${s.text}</td><td>${s.pinyin}</td><td class="st" data-f="${file}">확인 중…</td>
+    <td><a class="btn" target="_blank" rel="noopener" href="${A.onlineVoiceUrl + encodeURIComponent(s.text)}">열기</a></td>`;
+  tb.appendChild(tr);
+});
+document.querySelectorAll('[data-f]').forEach(td => {
+  fetch(td.dataset.f, { method:'HEAD' }).then(r => td.textContent = r.ok ? '✔ 있음' : '없음').catch(() => td.textContent = '없음');
+});
+</script>
+</body>
+</html>

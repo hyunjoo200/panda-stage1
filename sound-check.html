@@ -120,7 +120,7 @@ function tryPlay(url){
 }
 $('#b2').onclick = async () => {
   show(2, 'warn', '확인 중…');
-  try { await tryPlay(D.audio.sounds.ma1.file); R[2] = 'ok'; show(2, 'ok', '✔ 녹음 파일이 있어요. 지금 나오는 소리가 녹음 파일이에요.'); }
+  try { await tryPlay((D.audio.sounds.ma1.file || 'audio/ma1.mp3')); R[2] = 'ok'; show(2, 'ok', '✔ 녹음 파일이 있어요. 지금 나오는 소리가 녹음 파일이에요.'); }
   catch(e){ R[2] = 'none'; show(2, e === 'blocked' ? 'bad' : 'warn', e === 'blocked' ? '✘ 브라우저가 재생을 막았어요.' : '녹음 파일 없음 (아직 안 올렸다면 정상이에요)'); }
   advise();
 };
