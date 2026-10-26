@@ -70,7 +70,7 @@ const emptyRec = () => ({ first:null, firstCorrect:null, tries:0, wrongs:[], poi
 function newState(name){
   const results = {}; ALL.forEach(m => results[m.id] = emptyRec());
   return { name, tag:String(Math.floor(1000 + Math.random()*9000)), startedAt:Date.now(), learn:0, starPts:0, bumps:0,
-           starsTaken:[], results, items:[], zonesOpen:[], finished:false, finishedAt:null, x:90 };
+           starsTaken:[], stomped:[], results, items:[], zonesOpen:[], finished:false, finishedAt:null, x:90 };
 }
 let S = null;
 const persist = () => { if (S) store.save(S); };
@@ -635,7 +635,18 @@ function physics(dt){
     if (f.x < f.from){ f.x = f.from; f.dir = 1; } if (f.x > f.to){ f.x = f.to; f.dir = -1; }
     const fl = f.x - f.w/2, ft = GROUND - f.h;
     if (P.x + P.w - 6 > fl && P.x + 6 < fl + f.w && P.y + P.h > ft + 4 && P.y < GROUND){
-      if (P.vy > 0 && prevBottom <= ft + 14){ f.stun = 3; P.vy = -440; P.sq = 1.1; Snd.sfx.stomp(); particles.push({ x:f.x, y:ft - 10, t0:performance.now(), life:800, c:'#25845f', text:'어지러워~' }); }
+      if (P.vy > 0 && prevBottom <= ft + 14){
+        f.stun = 3; P.vy = -440; P.sq = 1.1; Snd.sfx.stomp();
+        S.stomped = S.stomped || [];
+        const pts = D.points.stomp || 0;
+        if (pts > 0 && !S.stomped.includes(f.seed)){
+          // 버섯 한 마리당 한 번만 별 점수를 줘요 (같은 버섯을 계속 밟아 점수를 쌓을 수 없게)
+          S.stomped.push(f.seed); S.starPts += pts; S.stomps = (S.stomps || 0) + 1;
+          particles.push({ x:f.x, y:ft - 10, t0:performance.now(), life:900, c:'#b98510', text:'+' + pts });
+          for (let k = 0; k < 8; k++) particles.push({ x:f.x, y:ft, vx:(Math.random() - .5)*90, vy:-Math.random()*70, t0:performance.now(), life:600, c:'#ffe57a' });
+          setTimeout(() => Snd.sfx.star(), 90); renderHud(); persist();
+        } else particles.push({ x:f.x, y:ft - 10, t0:performance.now(), life:800, c:'#25845f', text:'어지러워~' });
+      }
       else if (P.invuln <= 0){
         P.invuln = 2; P.kx = (P.x + P.w/2 < f.x ? -1 : 1) * 380; P.vy = -260;
         S.bumps += 1; const before = S.starPts; S.starPts = Math.max(0, S.starPts - D.points.bump);
@@ -1070,7 +1081,7 @@ function loop(now){
   } catch(err){ console.error(err); }
   requestAnimationFrame(loop);
 }
-window.__PANDA_LEVEL = LV; // 테스트용 지도 정보 (읽기 전용)
+window.__PANDA_LEVEL = LV; window.__PANDA_FRIENDS = friends; window.__PANDA_P = P; // 테스트용 (읽기 전용)
 initStart();
 requestAnimationFrame(loop);
 })();

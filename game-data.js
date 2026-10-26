@@ -28,8 +28,9 @@ window.GAME_DATA = {
 
   /* ---------- 2. 점수 ----------
      학습 점수(중국어 문제)와 별 점수(달리기)는 따로 계산합니다.
-     숲속 친구와 부딪히면 '별 점수'만 줄어들고, 학습 점수는 절대 줄지 않아요. */
-  points: { firstTry: 100, retry: 60, bonusFirstTry: 50, bonusRetry: 30, star: 10, bump: 10 },
+     숲속 친구와 부딪히면 '별 점수'만 줄어들고, 학습 점수는 절대 줄지 않아요.
+     stomp: 통통 버섯을 위에서 밟으면 받는 별 점수 (버섯 한 마리당 한 번만, 0이면 점수 없음) */
+  points: { firstTry: 100, retry: 60, bonusFirstTry: 50, bonusRetry: 30, star: 10, bump: 10, stomp: 20 },
 
   /* ---------- 3. 중국어 음성 ----------
      ① audio 폴더에 같은 이름의 MP3(예: audio/ma1.mp3)가 있으면 그 파일을 먼저 씁니다.
